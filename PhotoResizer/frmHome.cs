@@ -24,13 +24,13 @@ namespace PhotoResizer
         delegate void ProcessingCancelledDelegate();
         delegate void SetCurrentProgressDelegate(int currentProgress, string currentFile);
 
-        private string[] allExt = { ".jpg", ".png", ".jpeg", ".gif", ".tif", ".tiff", ".bmp", ".avi", ".mov" };
-        private string[] videoExt = { ".avi", ".mov" };
-        // TODO - do stuff with .avi
+        private string[] allExt = { ".jpg", ".png", ".jpeg", ".gif", ".tif", ".tiff", ".bmp", ".avi", ".mov", ".wmv" };
+        private string[] videoExt = { ".avi", ".mov", ".wmv" };
+
         private List<string> fileList = new List<string>();
         private enum comboOptions: int { percent, height, width };
         private enum outTypeOptions : int { match, JPG, PNG, BMP, GIF, TIF };
-        private enum videoOutTypeOptions : int { AVI };
+        private enum videoOutTypeOptions : int { WMV };
         private int[] comboTxtDefaults = { 50, 1000, 2000 };
         private int comboLastIdx = 0;
         private bool isProcessing = false;
@@ -82,7 +82,7 @@ namespace PhotoResizer
             outTypeOptions outTypeOption = (outTypeOptions)this.cbxOutputType.SelectedIndex;
             videoOutTypeOptions videoOutTypeOption = (videoOutTypeOptions)this.cbxVideoOutputType.SelectedIndex;
             int jpegQuality = (int)nudQuality.Value;
-            int mpegQuality = (int)nudMpegQuality.Value;
+            int mpegQuality = (int)nudVideoQuality.Value;
             CancellationToken token = this.cancelSource.Token;
 
             Task processingTask = Task.Factory.StartNew(() =>
@@ -136,10 +136,16 @@ namespace PhotoResizer
         private void SetControlsEnable(bool enbl)
         {
             this.btnClearFiles.Enabled = enbl;
+
             this.txtResize.Enabled = enbl;
             this.cbxOutputType.Enabled = enbl;
             this.cbxResizeType.Enabled = enbl;
             this.nudQuality.Enabled = enbl;
+
+            this.txtVideoResize.Enabled = enbl;
+            this.cbxVideoOutputType.Enabled = enbl;
+            this.cbxVideoResizeType.Enabled = enbl;
+            this.nudVideoQuality.Enabled = enbl;
         }
 
         private void OnProcessingComplete(int numFailed)
@@ -208,18 +214,18 @@ namespace PhotoResizer
             int newWidth = newSize.Item1;
             int newHeight = newSize.Item2;
 
-            // MP4OutputFormat mp4Format = new MP4OutputFormat();
-            // mp4Format.VideoProfile = new Microsoft.Expression.Encoder.Profiles.SimpleVC1VideoProfile();
-            // mp4Format.AudioProfile = new Microsoft.Expression.Encoder.Profiles.AacAudioProfile();
-            // mp4Format.VideoProfile.AspectRatio = mediaItem.OriginalAspectRatio;
-            // mp4Format.VideoProfile.AutoFit = true;
-            // mp4Format.VideoProfile.Size = new Size(newWidth, newHeight);  
-            // mp4Format.VideoProfile.Bitrate = new Microsoft.Expression.Encoder.Profiles.VariableUnconstrainedBitrate(2000);
+            double bitsPerSecondPerPixel = 8000.0 / 2000000.0;  // Assume 8kbps for full HD
+            int bitRate = Convert.ToInt32(bitsPerSecondPerPixel * mpegQuality * newWidth * newHeight / 100);
 
             WindowsMediaOutputFormat outFormat = new WindowsMediaOutputFormat();
+            outFormat.AudioProfile = new Microsoft.Expression.Encoder.Profiles.WmaAudioProfile();
             outFormat.VideoProfile = new Microsoft.Expression.Encoder.Profiles.MainVC1VideoProfile();
+            outFormat.VideoProfile.AspectRatio = mediaItem.OriginalAspectRatio;
+            outFormat.VideoProfile.AutoFit = true;
+            outFormat.VideoProfile.Bitrate = new Microsoft.Expression.Encoder.Profiles.VariableUnconstrainedBitrate(bitRate);
             outFormat.VideoProfile.Size = new Size(newWidth, newHeight);
-
+            FileInfo finfo = new FileInfo(filename);
+            
             mediaItem.VideoResizeMode = VideoResizeMode.Letterbox;
             mediaItem.OutputFormat = outFormat;
 
@@ -236,7 +242,8 @@ namespace PhotoResizer
         }
         private void OnJobEncodeProgress(object sender, EncodeProgressEventArgs e)
         {
-            SetCurrentProgress((int)(e.Progress), e.CurrentItem.SourceFileName);
+            SetCurrentProgress((int)(((e.CurrentPass - 1) * 100 + e.Progress) / e.TotalPasses), 
+                                e.CurrentItem.SourceFileName);
         }
 
 
@@ -366,8 +373,8 @@ namespace PhotoResizer
             string extension = Path.GetExtension(filename);
             switch (outType)
             {
-                case videoOutTypeOptions.AVI:
-                    extension = ".avi";
+                case videoOutTypeOptions.WMV:
+                    extension = ".wmv";
                     break;
             }
             return _CreateOutputFilename(filename, extension);
