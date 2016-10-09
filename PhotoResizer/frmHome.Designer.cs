@@ -57,10 +57,13 @@ namespace PhotoResizer
             this.lblVideo = new System.Windows.Forms.Label();
             this.cbxVideoResizeType = new System.Windows.Forms.ComboBox();
             this.lblDragTrimVideo = new System.Windows.Forms.Label();
+            this.statusStrip = new System.Windows.Forms.StatusStrip();
+            this.statusInfo = new System.Windows.Forms.ToolStripStatusLabel();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudQuality)).BeginInit();
             this.panel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudVideoQuality)).BeginInit();
+            this.statusStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // pbar1
@@ -350,14 +353,31 @@ namespace PhotoResizer
             this.lblDragTrimVideo.Name = "lblDragTrimVideo";
             this.lblDragTrimVideo.Size = new System.Drawing.Size(185, 136);
             this.lblDragTrimVideo.TabIndex = 25;
-            this.lblDragTrimVideo.Text = "Drag Videos To Trim Here";
+            this.lblDragTrimVideo.Text = "Drag Videos To Trim Here (one at a time)";
             this.lblDragTrimVideo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // statusStrip
+            // 
+            this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.statusInfo});
+            this.statusStrip.Location = new System.Drawing.Point(0, 404);
+            this.statusStrip.Name = "statusStrip";
+            this.statusStrip.Size = new System.Drawing.Size(583, 22);
+            this.statusStrip.TabIndex = 26;
+            this.statusStrip.Text = "statusStrip1";
+            // 
+            // statusInfo
+            // 
+            this.statusInfo.Name = "statusInfo";
+            this.statusInfo.Size = new System.Drawing.Size(39, 17);
+            this.statusInfo.Text = "Ready";
             // 
             // frmHome
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(583, 408);
+            this.ClientSize = new System.Drawing.Size(583, 426);
+            this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.lblDragTrimVideo);
             this.Controls.Add(this.panel2);
             this.Controls.Add(this.panel1);
@@ -380,6 +400,8 @@ namespace PhotoResizer
             this.panel2.ResumeLayout(false);
             this.panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudVideoQuality)).EndInit();
+            this.statusStrip.ResumeLayout(false);
+            this.statusStrip.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -413,6 +435,8 @@ namespace PhotoResizer
         private System.Windows.Forms.Label lblVideo;
         private System.Windows.Forms.ComboBox cbxVideoResizeType;
         private System.Windows.Forms.Label lblDragTrimVideo;
+        private System.Windows.Forms.StatusStrip statusStrip;
+        private System.Windows.Forms.ToolStripStatusLabel statusInfo;
     }
 }
 

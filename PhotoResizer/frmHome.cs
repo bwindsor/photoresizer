@@ -15,6 +15,7 @@ using Microsoft.Expression.Encoder;
 
 namespace PhotoResizer
 {
+
     public partial class frmHome : Form
     {
         // This delegate enables asynchronous calls for setting
@@ -27,7 +28,10 @@ namespace PhotoResizer
         private string[] allExt = { ".jpg", ".png", ".jpeg", ".gif", ".tif", ".tiff", ".bmp", ".avi", ".mov", ".wmv" };
         private string[] videoExt = { ".avi", ".mov", ".wmv" };
 
-        private List<string> fileList = new List<string>();
+        private List<string> fileList = new List<string>(); // List of files to process
+        private List<string> trimFiles = new List<string>();
+        private List<Tuple<double, double>> trimRanges = new List<Tuple<double, double>>();
+
         private enum comboOptions: int { percent, height, width };
         private enum outTypeOptions : int { match, JPG, PNG, BMP, GIF, TIF };
         private enum videoOutTypeOptions : int { WMV };
@@ -41,10 +45,13 @@ namespace PhotoResizer
             InitializeComponent();
             this.cbxResizeType.SelectedIndex = 0;
             this.cbxOutputType.SelectedIndex = 0;
+            this.txtResize.Text = this.comboTxtDefaults[this.cbxResizeType.SelectedIndex].ToString();
             this.cbxVideoOutputType.SelectedIndex = 0;
             this.cbxVideoResizeType.SelectedIndex = 0;
             this.lblDragFiles.DragEnter += new DragEventHandler(lblDragFiles_DragEnter);
             this.lblDragFiles.DragDrop += new DragEventHandler(lblDragFiles_DragDrop);
+            this.lblDragTrimVideo.DragEnter += new DragEventHandler(lblDragTrimVideo_DragEnter);
+            this.lblDragTrimVideo.DragDrop += new DragEventHandler(lblDragTrimVideo_DragDrop);
         }
 
 
@@ -100,7 +107,13 @@ namespace PhotoResizer
                        }
                        else
                        {
-                           ProcessVideoFile(this.fileList[ii], videoResizeValue, videoComboOption, videoOutTypeOption, mpegQuality);
+                           Tuple<double, double> trimRange = null;
+                           int idx = this.trimFiles.FindIndex(a => a == this.fileList[ii]);
+                           if (idx >= 0)
+                           {
+                               trimRange = this.trimRanges[idx];
+                           }
+                           ProcessVideoFile(this.fileList[ii], videoResizeValue, videoComboOption, videoOutTypeOption, mpegQuality, trimRange);
                        }
                        if (token.IsCancellationRequested) { break; }
                        SetProgress(ii + 1);
@@ -165,6 +178,7 @@ namespace PhotoResizer
                                 numFailed.ToString());
                 this.isProcessing = false;
                 this.btnProcess.Text = "Process Files";
+                SetCurrentProgress(100, "");
                 SetControlsEnable(true);
             }            
         }
@@ -186,7 +200,7 @@ namespace PhotoResizer
         }
 
         private void ProcessVideoFile(string filename, int resizeValue, comboOptions resizeOption, 
-                                    videoOutTypeOptions outTypeOption, int mpegQuality)
+                                    videoOutTypeOptions outTypeOption, int mpegQuality, Tuple<double,double> trimRange)
         {
             SetCurrentProgress(0, filename);
 
@@ -219,15 +233,22 @@ namespace PhotoResizer
 
             WindowsMediaOutputFormat outFormat = new WindowsMediaOutputFormat();
             outFormat.AudioProfile = new Microsoft.Expression.Encoder.Profiles.WmaAudioProfile();
-            outFormat.VideoProfile = new Microsoft.Expression.Encoder.Profiles.MainVC1VideoProfile();
+            // outFormat.VideoProfile = new Microsoft.Expression.Encoder.Profiles.MainVC1VideoProfile();
+            outFormat.VideoProfile = new Microsoft.Expression.Encoder.Profiles.AdvancedVC1VideoProfile();
             outFormat.VideoProfile.AspectRatio = mediaItem.OriginalAspectRatio;
             outFormat.VideoProfile.AutoFit = true;
             outFormat.VideoProfile.Bitrate = new Microsoft.Expression.Encoder.Profiles.VariableUnconstrainedBitrate(bitRate);
             outFormat.VideoProfile.Size = new Size(newWidth, newHeight);
-            FileInfo finfo = new FileInfo(filename);
-            
+
             mediaItem.VideoResizeMode = VideoResizeMode.Letterbox;
             mediaItem.OutputFormat = outFormat;
+
+            if (!(trimRange == null))
+            {
+                Source source = mediaItem.Sources[0];
+                source.Clips[0].StartTime = TimeSpan.FromSeconds(trimRange.Item1);
+                source.Clips[0].EndTime = TimeSpan.FromSeconds(trimRange.Item2);
+            }
 
             mediaItem.OutputFileName = Path.GetFileName(outFile);
 
@@ -431,7 +452,14 @@ namespace PhotoResizer
             {
                 int numTotal = this.fileList.Count;
                 lblProgress.Text = "Processed " + numComplete.ToString() + " of " + numTotal.ToString() + " files.";
-                pbar1.Value = numComplete * pbar1.Maximum / numTotal;
+                if (numTotal == 0)
+                {
+                    pbar1.Value = 0;
+                }
+                else
+                {
+                    pbar1.Value = numComplete * pbar1.Maximum / numTotal;
+                }
             }
         }
         private void SetCurrentProgress(int currentProgress, string currentFile)
@@ -556,6 +584,71 @@ namespace PhotoResizer
             }
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
+            int oldCount = this.fileList.Count;
+            AddNewFilesToList(files, allExt, this.fileList);
+
+            int numNew = this.fileList.Count - oldCount;
+            int numIgnored = files.Length - numNew;
+            this.statusInfo.Text = numNew.ToString() + " new files were added. " + numIgnored.ToString() + " were ignored.";
+            SetFileCount();
+        }
+        private void lblDragTrimVideo_DragEnter(object sender, DragEventArgs e)
+        {
+            if (this.isProcessing)
+            {
+                return;
+            }
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effect = DragDropEffects.Copy;
+            }
+        }
+        private void lblDragTrimVideo_DragDrop(object sender, DragEventArgs e)
+        {
+            if (this.isProcessing)
+            {
+                return;
+            }
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+            List<string> allowedFiles = new List<string>();
+            AddNewFilesToList(files, videoExt, allowedFiles);
+            if (allowedFiles.Count == 0)
+            {
+                this.statusInfo.Text = "None of the dragged files were supported video files.";
+                return;
+            }
+
+            string filename = allowedFiles[0];
+            if (this.fileList.Contains(filename))
+            {
+                this.statusInfo.Text = "Dragged file is already in the list.";
+                return;
+            }
+            
+            frmVideoTrim trimmer = new frmVideoTrim(filename);
+            DialogResult dialogResult = trimmer.ShowDialog(this);
+            switch (dialogResult)
+            {
+                case DialogResult.OK:
+                    Tuple<double, double> startStop = trimmer.GetTimeRange();
+                    this.trimRanges.Add(startStop);
+                    this.trimFiles.Add(filename);
+                    this.fileList.Add(filename);
+                    this.statusInfo.Text = "1 new file was added.";
+                    SetFileCount();
+                    break;
+                default:
+                    this.statusInfo.Text = "0 new files were added. Trimming was cancelled.";
+                    break;
+            }
+            trimmer.Dispose();
+        }
+
+        private static void AddNewFilesToList(string[] files, string[] extensions, List<string>currentList)
+        {
+            // Since currentList is passed by reference we can just modify it
+
             foreach (string droppedFile in files)
             {
                 try
@@ -564,15 +657,15 @@ namespace PhotoResizer
                     if (attr.HasFlag(FileAttributes.Directory))
                     {
                         // It's a directory - get list of all files inside it recursively
-                        List<string> subFiles = allExt
+                        List<string> subFiles = extensions
                                 .SelectMany(i => Directory.EnumerateFiles(droppedFile, "*" + i, SearchOption.AllDirectories))
                                 .ToList();
 
                         foreach (string subFile in subFiles)
                         {
-                            if (!this.fileList.Contains(subFile))
+                            if (!currentList.Contains(subFile))
                             {
-                                this.fileList.Add(subFile);
+                                currentList.Add(subFile);
                             }
                         }
                     }
@@ -580,22 +673,25 @@ namespace PhotoResizer
                     {
                         // It's a file
                         string thisExt = Path.GetExtension(droppedFile).ToLower();
-                        if (allExt.Contains(thisExt) && !this.fileList.Contains(droppedFile))
+                        if (extensions.Contains(thisExt) && !currentList.Contains(droppedFile))
                         {
-                            this.fileList.Add(droppedFile);
+                            currentList.Add(droppedFile);
                         }
                     }
                 }
                 catch { Console.WriteLine("Failed to read a dropped file."); }
             }
-                
-            SetFileCount();
         }
+
 
         private void btnClearFiles_Click(object sender, EventArgs e)
         {
             this.fileList = new List<string>();
+            this.trimFiles = new List<string>();
+            this.trimRanges = new List<Tuple<double, double>>();
             SetFileCount();
+            SetProgress(0);
+            SetCurrentProgress(0, "(processing not started)");
         }
 
         private void cbxOutputType_SelectedIndexChanged(object sender, EventArgs e)
