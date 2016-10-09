@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using Microsoft.Expression.Encoder;
 
 namespace PhotoResizer
 {
@@ -21,11 +22,15 @@ namespace PhotoResizer
         delegate void SetLblProgressCallback(int numFailed);
         delegate void SetProgressDelegate(int numComplete);
         delegate void ProcessingCancelledDelegate();
+        delegate void SetCurrentProgressDelegate(int currentProgress, string currentFile);
 
-        private string[] ext = { ".jpg", ".png", ".jpeg", ".gif", ".tif", ".tiff", ".bmp" };
+        private string[] allExt = { ".jpg", ".png", ".jpeg", ".gif", ".tif", ".tiff", ".bmp", ".avi", ".mov" };
+        private string[] videoExt = { ".avi", ".mov" };
+        // TODO - do stuff with .avi
         private List<string> fileList = new List<string>();
         private enum comboOptions: int { percent, height, width };
         private enum outTypeOptions : int { match, JPG, PNG, BMP, GIF, TIF };
+        private enum videoOutTypeOptions : int { AVI };
         private int[] comboTxtDefaults = { 50, 1000, 2000 };
         private int comboLastIdx = 0;
         private bool isProcessing = false;
@@ -36,6 +41,8 @@ namespace PhotoResizer
             InitializeComponent();
             this.cbxResizeType.SelectedIndex = 0;
             this.cbxOutputType.SelectedIndex = 0;
+            this.cbxVideoOutputType.SelectedIndex = 0;
+            this.cbxVideoResizeType.SelectedIndex = 0;
             this.lblDragFiles.DragEnter += new DragEventHandler(lblDragFiles_DragEnter);
             this.lblDragFiles.DragDrop += new DragEventHandler(lblDragFiles_DragDrop);
         }
@@ -53,18 +60,29 @@ namespace PhotoResizer
                 MessageBox.Show("No files selected.", "No files selected", MessageBoxButtons.OK);
                 return;
             }
-            int resizeValue = TryReadTxtResize((comboOptions)this.cbxResizeType.SelectedIndex);
+            int resizeValue = TryReadResizeText(this.txtResize, (comboOptions)this.cbxResizeType.SelectedIndex);
             if (resizeValue < 0)
             {
                 MessageBox.Show("Invalid value entered for resizing images to.", "Invalid entry", MessageBoxButtons.OK);
                 return;
             }
+            int videoResizeValue = TryReadResizeText(this.txtVideoResize, (comboOptions)this.cbxVideoResizeType.SelectedIndex);
+            if (videoResizeValue < 0)
+            {
+                MessageBox.Show("Invalid value entered for resizing videos to.", "Invalid entry", MessageBoxButtons.OK);
+                return;
+            }
 
             this.OnProcessingStart();
 
+            
+
             comboOptions comboOption = (comboOptions)this.cbxResizeType.SelectedIndex;
+            comboOptions videoComboOption = (comboOptions)this.cbxVideoResizeType.SelectedIndex;
             outTypeOptions outTypeOption = (outTypeOptions)this.cbxOutputType.SelectedIndex;
+            videoOutTypeOptions videoOutTypeOption = (videoOutTypeOptions)this.cbxVideoOutputType.SelectedIndex;
             int jpegQuality = (int)nudQuality.Value;
+            int mpegQuality = (int)nudMpegQuality.Value;
             CancellationToken token = this.cancelSource.Token;
 
             Task processingTask = Task.Factory.StartNew(() =>
@@ -76,12 +94,20 @@ namespace PhotoResizer
                    if (token.IsCancellationRequested) { break; }
                    try
                    {
-                       ProcessFile(this.fileList[ii], resizeValue, comboOption, outTypeOption, jpegQuality);
+                       if (!IsVideoFile(this.fileList[ii]))
+                       {
+                           ProcessImageFile(this.fileList[ii], resizeValue, comboOption, outTypeOption, jpegQuality);
+                       }
+                       else
+                       {
+                           ProcessVideoFile(this.fileList[ii], videoResizeValue, videoComboOption, videoOutTypeOption, mpegQuality);
+                       }
                        if (token.IsCancellationRequested) { break; }
                        SetProgress(ii + 1);
                    }
-                   catch
+                   catch (Exception exp)
                    {
+                       Console.WriteLine(String.Format("{0} - {1}", exp.Message, exp.StackTrace));
                        failedList.Add(this.fileList[ii]);
                    }
                }
@@ -104,6 +130,7 @@ namespace PhotoResizer
             SetControlsEnable(false);
             this.isProcessing = true;
             SetProgress(0);
+            SetCurrentProgress(0, "");
         }
         
         private void SetControlsEnable(bool enbl)
@@ -152,8 +179,71 @@ namespace PhotoResizer
             }
         }
 
-        private void ProcessFile(string filename, int resizeValue, comboOptions resizeOption, outTypeOptions outTypeOption, int jpegQuality)
+        private void ProcessVideoFile(string filename, int resizeValue, comboOptions resizeOption, 
+                                    videoOutTypeOptions outTypeOption, int mpegQuality)
         {
+            SetCurrentProgress(0, filename);
+
+            // TODO - check if input file exists
+                        
+            string outFile = GetOutputFilename(filename, outTypeOption);
+            EnsureDir(outFile); // Will throw exception if can't create folder
+            DialogResult result = WarnIfExists(outFile);
+            switch (result)
+            {
+                case DialogResult.Yes:
+                    break;
+                case DialogResult.No:
+                    return;
+                case DialogResult.Cancel:
+                    this.cancelSource.Cancel();
+                    return;
+            }
+
+            Job j = new Job();
+            MediaItem mediaItem = new MediaItem(filename);
+            var originalSize = mediaItem.OriginalVideoSize;
+            // Get new dimensions
+            Tuple<int, int> newSize = GetNewSize(resizeOption, originalSize.Width, originalSize.Height, resizeValue);
+            int newWidth = newSize.Item1;
+            int newHeight = newSize.Item2;
+
+            // MP4OutputFormat mp4Format = new MP4OutputFormat();
+            // mp4Format.VideoProfile = new Microsoft.Expression.Encoder.Profiles.SimpleVC1VideoProfile();
+            // mp4Format.AudioProfile = new Microsoft.Expression.Encoder.Profiles.AacAudioProfile();
+            // mp4Format.VideoProfile.AspectRatio = mediaItem.OriginalAspectRatio;
+            // mp4Format.VideoProfile.AutoFit = true;
+            // mp4Format.VideoProfile.Size = new Size(newWidth, newHeight);  
+            // mp4Format.VideoProfile.Bitrate = new Microsoft.Expression.Encoder.Profiles.VariableUnconstrainedBitrate(2000);
+
+            WindowsMediaOutputFormat outFormat = new WindowsMediaOutputFormat();
+            outFormat.VideoProfile = new Microsoft.Expression.Encoder.Profiles.MainVC1VideoProfile();
+            outFormat.VideoProfile.Size = new Size(newWidth, newHeight);
+
+            mediaItem.VideoResizeMode = VideoResizeMode.Letterbox;
+            mediaItem.OutputFormat = outFormat;
+
+            mediaItem.OutputFileName = Path.GetFileName(outFile);
+
+            j.MediaItems.Add(mediaItem);
+            j.CreateSubfolder = false;
+            j.OutputDirectory = Path.GetDirectoryName(outFile);
+
+            j.EncodeProgress += new EventHandler<EncodeProgressEventArgs>(OnJobEncodeProgress);
+            j.Encode();
+            j.Dispose();
+            
+        }
+        private void OnJobEncodeProgress(object sender, EncodeProgressEventArgs e)
+        {
+            SetCurrentProgress((int)(e.Progress), e.CurrentItem.SourceFileName);
+        }
+
+
+        private void ProcessImageFile(string filename, int resizeValue, comboOptions resizeOption, 
+                                    outTypeOptions outTypeOption, int jpegQuality)
+        {
+            SetCurrentProgress(0, filename);
 
             // Read file - will throw exception if file doesn't exist
             Image img = Image.FromFile(filename);
@@ -173,28 +263,10 @@ namespace PhotoResizer
             }
 
             // Get new dimensions
-            int newWidth = 0;
-            int newHeight = 0;
-            switch (resizeOption)
-            {
-                case comboOptions.percent:
-                    newWidth = img.Width * resizeValue / 100;
-                    newHeight = img.Height * resizeValue / 100;
-                    break;
-                case comboOptions.height:
-                    newHeight = resizeValue;
-                    newWidth = img.Width * resizeValue / img.Height;
-                    break;
-                case comboOptions.width:
-                    newHeight = img.Height * resizeValue / img.Width;
-                    newWidth = resizeValue;
-                    break;
-            }
-            if (newWidth == 0 || newHeight == 0)
-            {
-                throw new Exception("New image is too small.");
-            }
-
+            Tuple<int, int> newSize = GetNewSize(resizeOption, img.Width, img.Height, resizeValue);
+            int newWidth = newSize.Item1;
+            int newHeight = newSize.Item2;
+            
             // Do actual resize
             Bitmap resizedBmp = ResizeImage(img, newWidth, newHeight);
 
@@ -251,6 +323,32 @@ namespace PhotoResizer
             resizedBmp.Save(outFile, ici, eps);
         }
 
+        private static Tuple<int, int> GetNewSize(comboOptions resizeOption, int width, int height, int resizeValue)
+        {
+            int newWidth = 0;
+            int newHeight = 0;
+            switch (resizeOption)
+            {
+                case comboOptions.percent:
+                    newWidth = width * resizeValue / 100;
+                    newHeight = height * resizeValue / 100;
+                    break;
+                case comboOptions.height:
+                    newHeight = resizeValue;
+                    newWidth = width * resizeValue / height;
+                    break;
+                case comboOptions.width:
+                    newHeight = height * resizeValue / width;
+                    newWidth = resizeValue;
+                    break;
+            }
+            if (newWidth == 0 || newHeight == 0)
+            {
+                throw new Exception("New image is too small.");
+            }
+            return new Tuple<int, int>(newWidth, newHeight);
+        }
+
         private static DialogResult WarnIfExists(string filename)
         {
             // if file exists, asks the user for a response
@@ -262,6 +360,18 @@ namespace PhotoResizer
             return result;
         }
 
+        private static string GetOutputFilename(string filename, videoOutTypeOptions outType)
+        {
+            // Gets an output filename
+            string extension = Path.GetExtension(filename);
+            switch (outType)
+            {
+                case videoOutTypeOptions.AVI:
+                    extension = ".avi";
+                    break;
+            }
+            return _CreateOutputFilename(filename, extension);
+        }
         private static string GetOutputFilename(string filename, outTypeOptions outType)
         {
             // Gets an output filename
@@ -284,8 +394,13 @@ namespace PhotoResizer
                     extension = ".tif";
                     break;
             }
+            return _CreateOutputFilename(filename, extension);
+        }
+        private static string _CreateOutputFilename(string filename, string extension)
+        {
             return Path.Combine(Path.GetDirectoryName(filename), "Resized", string.Concat(Path.GetFileNameWithoutExtension(filename), extension));
         }
+
         private static void EnsureDir(string filename)
         {
             string dirName = Path.GetDirectoryName(filename);
@@ -311,6 +426,25 @@ namespace PhotoResizer
                 lblProgress.Text = "Processed " + numComplete.ToString() + " of " + numTotal.ToString() + " files.";
                 pbar1.Value = numComplete * pbar1.Maximum / numTotal;
             }
+        }
+        private void SetCurrentProgress(int currentProgress, string currentFile)
+        {
+            if (this.lblFileProgress.InvokeRequired)
+            {
+                SetCurrentProgressDelegate d = new SetCurrentProgressDelegate(SetCurrentProgress);
+                this.Invoke(d, new object[] { currentProgress, currentFile });
+            }
+            else
+            {
+                int numTotal = this.fileList.Count;
+                lblFileProgress.Text = "Processing file " + currentFile;
+                pbar2.Value = currentProgress;
+            }
+        }
+
+        private bool IsVideoFile(string filename)
+        {
+            return videoExt.Contains(Path.GetExtension(filename).ToLower());
         }
 
         /// <summary>
@@ -347,7 +481,7 @@ namespace PhotoResizer
 
         private void cbxResizeType_SelectedIndexChanged(object sender, EventArgs e)
         {
-            int resizeValue = TryReadTxtResize((comboOptions)this.comboLastIdx);
+            int resizeValue = TryReadResizeText(this.txtResize, (comboOptions)this.comboLastIdx);
             if (resizeValue >= 0)
             {
                 this.comboTxtDefaults[this.comboLastIdx] = resizeValue;
@@ -356,10 +490,10 @@ namespace PhotoResizer
             this.comboLastIdx = this.cbxResizeType.SelectedIndex;
         }
 
-        private int TryReadTxtResize(comboOptions comboIdx)
+        private int TryReadResizeText(TextBox txtBox, comboOptions comboIdx)
         {
             int x;
-            bool success = int.TryParse(txtResize.Text, out x);
+            bool success = int.TryParse(txtBox.Text, out x);
 
             if (success)
             {
@@ -423,7 +557,7 @@ namespace PhotoResizer
                     if (attr.HasFlag(FileAttributes.Directory))
                     {
                         // It's a directory - get list of all files inside it recursively
-                        List<string> subFiles = ext
+                        List<string> subFiles = allExt
                                 .SelectMany(i => Directory.EnumerateFiles(droppedFile, "*" + i, SearchOption.AllDirectories))
                                 .ToList();
 
@@ -439,7 +573,7 @@ namespace PhotoResizer
                     {
                         // It's a file
                         string thisExt = Path.GetExtension(droppedFile).ToLower();
-                        if (ext.Contains(thisExt) && !this.fileList.Contains(droppedFile))
+                        if (allExt.Contains(thisExt) && !this.fileList.Contains(droppedFile))
                         {
                             this.fileList.Add(droppedFile);
                         }
