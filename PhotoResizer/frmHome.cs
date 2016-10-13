@@ -205,7 +205,7 @@ namespace PhotoResizer
             SetCurrentProgress(0, filename);
 
             // TODO - check if input file exists
-                        
+            
             string outFile = GetOutputFilename(filename, outTypeOption);
             EnsureDir(outFile); // Will throw exception if can't create folder
             DialogResult result = WarnIfExists(outFile);
@@ -225,8 +225,15 @@ namespace PhotoResizer
             var originalSize = mediaItem.OriginalVideoSize;
             // Get new dimensions
             Tuple<int, int> newSize = GetNewSize(resizeOption, originalSize.Width, originalSize.Height, resizeValue);
-            int newWidth = newSize.Item1;
-            int newHeight = newSize.Item2;
+            // Round to the nearest 4 pixels - this is required by encoder
+            // Encoder says the value must be an even integer between 64 and 4096 and a multiple of 4
+            int newWidth = Convert.ToInt32(Math.Round(newSize.Item1 / 4.0) * 4);
+            int newHeight = Convert.ToInt32(Math.Round(newSize.Item2 / 4.0) * 4);
+            if (newWidth < 64 || newHeight < 64 || newWidth > 4096 || newHeight > 4096)
+            {
+                throw new Exception("New height and width must be between 64 and 4096 pixels");
+                // TODO - display this in the status bar
+            }
 
             double bitsPerSecondPerPixel = 8000.0 / 2000000.0;  // Assume 8kbps for full HD
             int bitRate = Convert.ToInt32(bitsPerSecondPerPixel * mpegQuality * newWidth * newHeight / 100);
