@@ -3,15 +3,13 @@ using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using Microsoft.Expression.Encoder;
+using PhotoResizeLib;
 
 namespace PhotoResizer
 {
@@ -31,10 +29,7 @@ namespace PhotoResizer
         private List<string> fileList = new List<string>(); // List of files to process
         private List<string> trimFiles = new List<string>();
         private List<Tuple<double, double>> trimRanges = new List<Tuple<double, double>>();
-
-        private enum comboOptions: int { percent, height, width };
-        private enum outTypeOptions : int { match, JPG, PNG, BMP, GIF, TIF };
-        private enum videoOutTypeOptions : int { WMV };
+        
         private int[] comboTxtDefaults = { 50, 1000, 2000 };
         private int comboLastIdx = 0;
         private bool isProcessing = false;
@@ -82,8 +77,6 @@ namespace PhotoResizer
 
             this.OnProcessingStart();
 
-            
-
             comboOptions comboOption = (comboOptions)this.cbxResizeType.SelectedIndex;
             comboOptions videoComboOption = (comboOptions)this.cbxVideoResizeType.SelectedIndex;
             outTypeOptions outTypeOption = (outTypeOptions)this.cbxOutputType.SelectedIndex;
@@ -101,22 +94,47 @@ namespace PhotoResizer
                    if (token.IsCancellationRequested) { break; }
                    try
                    {
-                       if (!IsVideoFile(this.fileList[ii]))
+                       string outFilename = "";
+                       bool cont = true;
+                       bool isVideo = IsVideoFile(this.fileList[ii]);
+                       try
                        {
-                           ProcessImageFile(this.fileList[ii], resizeValue, comboOption, outTypeOption, jpegQuality);
-                       }
-                       else
-                       {
-                           Tuple<double, double> trimRange = null;
-                           int idx = this.trimFiles.FindIndex(a => a == this.fileList[ii]);
-                           if (idx >= 0)
+                           if (isVideo)
                            {
-                               trimRange = this.trimRanges[idx];
+                               outFilename = GetOutputFilename(this.fileList[ii], outTypeOption);
                            }
-                           ProcessVideoFile(this.fileList[ii], videoResizeValue, videoComboOption, videoOutTypeOption, mpegQuality, trimRange);
+                           else
+                           {
+                               outFilename = GetOutputFilename(this.fileList[ii], videoOutTypeOption);
+                           }
+                           MediaProcessor.CheckFiles(this.fileList[ii], outFilename);
                        }
-                       if (token.IsCancellationRequested) { break; }
-                       SetProgress(ii + 1);
+                       catch (FileAlreadyExistsException exept)
+                       {
+                           cont = ShouldContinueWhenFileExists(exept.Message);
+                       }
+
+                        if (cont)
+                        {
+                            if (!IsVideoFile(this.fileList[ii]))
+                            {
+                                SetCurrentProgress(0, this.fileList[ii]);
+                                MediaProcessor.ProcessImageFile(this.fileList[ii], outFilename, resizeValue, comboOption, outTypeOption, jpegQuality);
+                            }
+                            else
+                            {
+                                Tuple<double, double> trimRange = null;
+                                int idx = this.trimFiles.FindIndex(a => a == this.fileList[ii]);
+                                if (idx >= 0)
+                                {
+                                    trimRange = this.trimRanges[idx];
+                                }
+                                SetCurrentProgress(0, this.fileList[ii]);
+                                MediaProcessor.ProcessVideoFile(this.fileList[ii], outFilename, videoResizeValue, videoComboOption, videoOutTypeOption, mpegQuality, trimRange, OnJobEncodeProgress);
+                            }
+                        }
+                        if (token.IsCancellationRequested) { break; }
+                        SetProgress(ii + 1);
                    }
                    catch (Exception exp)
                    {
@@ -134,6 +152,23 @@ namespace PhotoResizer
                }
            }, token);
 
+        }
+
+        private bool ShouldContinueWhenFileExists(string message)
+        {
+            DialogResult result = MessageBox.Show("File " + message + ". \r\nYes to overwrite\r\nNo to skip this file\r\nCancel to stop processing", "File already exists", MessageBoxButtons.YesNoCancel);
+            switch (result)
+            {
+                case DialogResult.Yes:
+                    return true;
+                case DialogResult.No:
+                    return false;
+                case DialogResult.Cancel:
+                    this.cancelSource.Cancel();
+                    return false;
+                default:
+                    return false;
+            }
         }
 
         private void OnProcessingStart()
@@ -199,201 +234,13 @@ namespace PhotoResizer
             }
         }
 
-        private void ProcessVideoFile(string filename, int resizeValue, comboOptions resizeOption, 
-                                    videoOutTypeOptions outTypeOption, int mpegQuality, Tuple<double,double> trimRange)
-        {
-            SetCurrentProgress(0, filename);
-
-            // TODO - check if input file exists
-            
-            string outFile = GetOutputFilename(filename, outTypeOption);
-            EnsureDir(outFile); // Will throw exception if can't create folder
-            DialogResult result = WarnIfExists(outFile);
-            switch (result)
-            {
-                case DialogResult.Yes:
-                    break;
-                case DialogResult.No:
-                    return;
-                case DialogResult.Cancel:
-                    this.cancelSource.Cancel();
-                    return;
-            }
-
-            Job j = new Job();
-            MediaItem mediaItem = new MediaItem(filename);
-            var originalSize = mediaItem.OriginalVideoSize;
-            // Get new dimensions
-            Tuple<int, int> newSize = GetNewSize(resizeOption, originalSize.Width, originalSize.Height, resizeValue);
-            // Round to the nearest 4 pixels - this is required by encoder
-            // Encoder says the value must be an even integer between 64 and 4096 and a multiple of 4
-            int newWidth = Convert.ToInt32(Math.Round(newSize.Item1 / 4.0) * 4);
-            int newHeight = Convert.ToInt32(Math.Round(newSize.Item2 / 4.0) * 4);
-            if (newWidth < 64 || newHeight < 64 || newWidth > 4096 || newHeight > 4096)
-            {
-                throw new Exception("New height and width must be between 64 and 4096 pixels");
-                // TODO - display this in the status bar
-            }
-
-            double bitsPerSecondPerPixel = 8000.0 / 2000000.0;  // Assume 8kbps for full HD
-            int bitRate = Convert.ToInt32(bitsPerSecondPerPixel * mpegQuality * newWidth * newHeight / 100);
-
-            WindowsMediaOutputFormat outFormat = new WindowsMediaOutputFormat();
-            outFormat.AudioProfile = new Microsoft.Expression.Encoder.Profiles.WmaAudioProfile();
-            // outFormat.VideoProfile = new Microsoft.Expression.Encoder.Profiles.MainVC1VideoProfile();
-            outFormat.VideoProfile = new Microsoft.Expression.Encoder.Profiles.AdvancedVC1VideoProfile();
-            outFormat.VideoProfile.AspectRatio = mediaItem.OriginalAspectRatio;
-            outFormat.VideoProfile.AutoFit = true;
-            outFormat.VideoProfile.Bitrate = new Microsoft.Expression.Encoder.Profiles.VariableUnconstrainedBitrate(bitRate);
-            outFormat.VideoProfile.Size = new Size(newWidth, newHeight);
-
-            mediaItem.VideoResizeMode = VideoResizeMode.Letterbox;
-            mediaItem.OutputFormat = outFormat;
-
-            if (!(trimRange == null))
-            {
-                Source source = mediaItem.Sources[0];
-                source.Clips[0].StartTime = TimeSpan.FromSeconds(trimRange.Item1);
-                source.Clips[0].EndTime = TimeSpan.FromSeconds(trimRange.Item2);
-            }
-
-            mediaItem.OutputFileName = Path.GetFileName(outFile);
-
-            j.MediaItems.Add(mediaItem);
-            j.CreateSubfolder = false;
-            j.OutputDirectory = Path.GetDirectoryName(outFile);
-
-            j.EncodeProgress += new EventHandler<EncodeProgressEventArgs>(OnJobEncodeProgress);
-            j.Encode();
-            j.Dispose();
-            
-        }
+        
         private void OnJobEncodeProgress(object sender, EncodeProgressEventArgs e)
         {
             SetCurrentProgress((int)(((e.CurrentPass - 1) * 100 + e.Progress) / e.TotalPasses), 
                                 e.CurrentItem.SourceFileName);
         }
-
-
-        private void ProcessImageFile(string filename, int resizeValue, comboOptions resizeOption, 
-                                    outTypeOptions outTypeOption, int jpegQuality)
-        {
-            SetCurrentProgress(0, filename);
-
-            // Read file - will throw exception if file doesn't exist
-            Image img = Image.FromFile(filename);
-
-            string outFile = GetOutputFilename(filename, outTypeOption);
-            EnsureDir(outFile); // Will throw exception if can't create folder
-            DialogResult result = WarnIfExists(outFile);
-            switch (result)
-            {
-                case DialogResult.Yes:
-                    break;
-                case DialogResult.No:
-                    return;
-                case DialogResult.Cancel:
-                    this.cancelSource.Cancel();
-                    return;
-            }
-
-            // Get new dimensions
-            Tuple<int, int> newSize = GetNewSize(resizeOption, img.Width, img.Height, resizeValue);
-            int newWidth = newSize.Item1;
-            int newHeight = newSize.Item2;
-            
-            // Do actual resize
-            Bitmap resizedBmp = ResizeImage(img, newWidth, newHeight);
-
-            // Save result
-            if (outTypeOption == outTypeOptions.match)
-            {
-                switch (Path.GetExtension(filename).ToLower())
-                {
-                    case ".jpg": case ".jpeg":
-                        outTypeOption = outTypeOptions.JPG;
-                        break;
-                    case ".bmp":
-                        outTypeOption = outTypeOptions.BMP;
-                        break;
-                    case ".gif":
-                        outTypeOption = outTypeOptions.GIF;
-                        break;
-                    case ".png":
-                        outTypeOption = outTypeOptions.PNG;
-                        break;
-                    case ".tif": case ".tiff":
-                        outTypeOption = outTypeOptions.TIF;
-                        break;
-                }
-            }
-            EncoderParameters eps = null;
-            ImageCodecInfo ici = GetEncoderInfo("image/bmp");
-            switch (outTypeOption)
-            {
-                case outTypeOptions.JPG:
-                    eps = new EncoderParameters(1);
-                    eps.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)jpegQuality);
-                    ici = GetEncoderInfo("image/jpeg");
-                    break;
-                case outTypeOptions.BMP:
-                    // Nothing to do - defaults are fine
-                    break;
-                case outTypeOptions.GIF:
-                    ici = GetEncoderInfo("image/gif");
-                    break;
-                case outTypeOptions.PNG:
-                    ici = GetEncoderInfo("image/png");
-                    break;
-                case outTypeOptions.TIF:
-                    ici = GetEncoderInfo("image/tiff");
-                    break;
-            }
-            
-            foreach (PropertyItem propItem in img.PropertyItems)
-            {
-                resizedBmp.SetPropertyItem(propItem);
-            }
-            
-            resizedBmp.Save(outFile, ici, eps);
-        }
-
-        private static Tuple<int, int> GetNewSize(comboOptions resizeOption, int width, int height, int resizeValue)
-        {
-            int newWidth = 0;
-            int newHeight = 0;
-            switch (resizeOption)
-            {
-                case comboOptions.percent:
-                    newWidth = width * resizeValue / 100;
-                    newHeight = height * resizeValue / 100;
-                    break;
-                case comboOptions.height:
-                    newHeight = resizeValue;
-                    newWidth = width * resizeValue / height;
-                    break;
-                case comboOptions.width:
-                    newHeight = height * resizeValue / width;
-                    newWidth = resizeValue;
-                    break;
-            }
-            if (newWidth == 0 || newHeight == 0)
-            {
-                throw new Exception("New image is too small.");
-            }
-            return new Tuple<int, int>(newWidth, newHeight);
-        }
-
-        private static DialogResult WarnIfExists(string filename)
-        {
-            // if file exists, asks the user for a response
-            DialogResult result = DialogResult.Yes;
-            if (File.Exists(filename))
-            {
-                result = MessageBox.Show("File " + filename + " already exists. \r\nYes to overwrite\r\nNo to skip this file\r\nCancel to stop processing", "File already exists", MessageBoxButtons.YesNoCancel);
-            }
-            return result;
-        }
+        
 
         private static string GetOutputFilename(string filename, videoOutTypeOptions outType)
         {
@@ -434,13 +281,6 @@ namespace PhotoResizer
         private static string _CreateOutputFilename(string filename, string extension)
         {
             return Path.Combine(Path.GetDirectoryName(filename), "Resized", string.Concat(Path.GetFileNameWithoutExtension(filename), extension));
-        }
-
-        private static void EnsureDir(string filename)
-        {
-            string dirName = Path.GetDirectoryName(filename);
-            // Ensures the directory for a given filename exists
-            if (!Directory.Exists(dirName)) { Directory.CreateDirectory(dirName); }
         }
 
         private void SetFileCount()
@@ -489,38 +329,6 @@ namespace PhotoResizer
             return videoExt.Contains(Path.GetExtension(filename).ToLower());
         }
 
-        /// <summary>
-        /// Resize the image to the specified width and height.
-        /// </summary>
-        /// <param name="image">The image to resize.</param>
-        /// <param name="width">The width to resize to.</param>
-        /// <param name="height">The height to resize to.</param>
-        /// <returns>The resized image.</returns>
-        public static Bitmap ResizeImage(Image image, int width, int height)
-        {
-            var destRect = new Rectangle(0, 0, width, height);
-            var destImage = new Bitmap(width, height);
-
-            destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
-
-            using (var graphics = Graphics.FromImage(destImage))
-            {
-                graphics.CompositingMode = CompositingMode.SourceCopy;
-                graphics.CompositingQuality = CompositingQuality.HighQuality;
-                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                graphics.SmoothingMode = SmoothingMode.HighQuality;
-                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
-                using (var wrapMode = new ImageAttributes())
-                {
-                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
-                }
-            }
-
-            return destImage;
-        }
-
         private void cbxResizeType_SelectedIndexChanged(object sender, EventArgs e)
         {
             int resizeValue = TryReadResizeText(this.txtResize, (comboOptions)this.comboLastIdx);
@@ -557,19 +365,6 @@ namespace PhotoResizer
                 x = -1;
             }
             return x;
-        }
-
-        private static ImageCodecInfo GetEncoderInfo(String mimeType)
-        {
-            int j;
-            ImageCodecInfo[] encoders;
-            encoders = ImageCodecInfo.GetImageEncoders();
-            for (j = 0; j < encoders.Length; ++j)
-            {
-                if (encoders[j].MimeType == mimeType)
-                    return encoders[j];
-            }
-            return null;
         }
 
         private void lblDragFiles_DragEnter(object sender, DragEventArgs e)
