@@ -18,22 +18,15 @@ namespace PhotoResizer
     {
         // This delegate enables asynchronous calls for setting
         // the text property on a TextBox control.
-        delegate void SetLblProgressCallback(int numFailed);
-        delegate void SetProgressDelegate(int numComplete);
+        delegate void SetLblProgressCallback(ProcessingResult result);
+        delegate void SetProgressDelegate(ProgressEventArgs e);
         delegate void ProcessingCancelledDelegate();
         delegate void SetCurrentProgressDelegate(int currentProgress, string currentFile);
-
-        private string[] allExt = { ".jpg", ".png", ".jpeg", ".gif", ".tif", ".tiff", ".bmp", ".avi", ".mov", ".wmv" };
-        private string[] videoExt = { ".avi", ".mov", ".wmv" };
-
-        private List<string> fileList = new List<string>(); // List of files to process
-        private List<string> trimFiles = new List<string>();
-        private List<Tuple<double, double>> trimRanges = new List<Tuple<double, double>>();
         
         private int[] comboTxtDefaults = { 50, 1000, 2000 };
         private int comboLastIdx = 0;
-        private bool isProcessing = false;
         private CancellationTokenSource cancelSource = new CancellationTokenSource();
+        private MediaProcessor MP = new MediaProcessor();
 
         public frmHome()
         {
@@ -52,12 +45,13 @@ namespace PhotoResizer
 
         private void btnProcess_Click(object sender, EventArgs e)
         {
-            if (this.isProcessing)
+
+            if (MP.isProcessing)
             {
                 this.cancelSource.Cancel();
                 return;
             }
-            if (this.fileList.Count == 0)
+            if (MP.GetNumFiles() == 0)
             {
                 MessageBox.Show("No files selected.", "No files selected", MessageBoxButtons.OK);
                 return;
@@ -77,80 +71,32 @@ namespace PhotoResizer
 
             this.OnProcessingStart();
 
-            comboOptions comboOption = (comboOptions)this.cbxResizeType.SelectedIndex;
-            comboOptions videoComboOption = (comboOptions)this.cbxVideoResizeType.SelectedIndex;
-            outTypeOptions outTypeOption = (outTypeOptions)this.cbxOutputType.SelectedIndex;
-            videoOutTypeOptions videoOutTypeOption = (videoOutTypeOptions)this.cbxVideoOutputType.SelectedIndex;
-            int jpegQuality = (int)nudQuality.Value;
-            int mpegQuality = (int)nudVideoQuality.Value;
+            MediaProcessorOptions options = new MediaProcessorOptions(
+                imageResizeType: (comboOptions)this.cbxResizeType.SelectedIndex,
+                videoResizeType: (comboOptions)this.cbxVideoResizeType.SelectedIndex,
+                imageOutType: (outTypeOptions)this.cbxOutputType.SelectedIndex,
+                videoOutType: (videoOutTypeOptions)this.cbxVideoOutputType.SelectedIndex,
+                imageResizeValue: resizeValue,
+                videoResizeValue: videoResizeValue,
+                jpegQuality: (int)nudQuality.Value,
+                videoQuality: (int)nudVideoQuality.Value
+            );
+            MP.SetOptions(options);
             CancellationToken token = this.cancelSource.Token;
 
             Task processingTask = Task.Factory.StartNew(() =>
-           {
-               
-               List<string> failedList = new List<string>();
-               for (int ii = 0; ii < this.fileList.Count; ii++)
-               {
-                   if (token.IsCancellationRequested) { break; }
-                   try
-                   {
-                       string outFilename = "";
-                       bool cont = true;
-                       bool isVideo = IsVideoFile(this.fileList[ii]);
-                       try
-                       {
-                           if (isVideo)
-                           {
-                               outFilename = GetOutputFilename(this.fileList[ii], outTypeOption);
-                           }
-                           else
-                           {
-                               outFilename = GetOutputFilename(this.fileList[ii], videoOutTypeOption);
-                           }
-                           MediaProcessor.CheckFiles(this.fileList[ii], outFilename);
-                       }
-                       catch (FileAlreadyExistsException exept)
-                       {
-                           cont = ShouldContinueWhenFileExists(exept.Message);
-                       }
+            {
+                MP.Run(token, UpdateOnProgress);
+                if (token.IsCancellationRequested)
+                {
+                    this.OnProcessingCancelled();
+                }
+                else
+                {
+                    this.OnProcessingComplete(MP.GetResult());
+                }
 
-                        if (cont)
-                        {
-                            if (!IsVideoFile(this.fileList[ii]))
-                            {
-                                SetCurrentProgress(0, this.fileList[ii]);
-                                MediaProcessor.ProcessImageFile(this.fileList[ii], outFilename, resizeValue, comboOption, outTypeOption, jpegQuality);
-                            }
-                            else
-                            {
-                                Tuple<double, double> trimRange = null;
-                                int idx = this.trimFiles.FindIndex(a => a == this.fileList[ii]);
-                                if (idx >= 0)
-                                {
-                                    trimRange = this.trimRanges[idx];
-                                }
-                                SetCurrentProgress(0, this.fileList[ii]);
-                                MediaProcessor.ProcessVideoFile(this.fileList[ii], outFilename, videoResizeValue, videoComboOption, videoOutTypeOption, mpegQuality, trimRange, OnJobEncodeProgress);
-                            }
-                        }
-                        if (token.IsCancellationRequested) { break; }
-                        SetProgress(ii + 1);
-                   }
-                   catch (Exception exp)
-                   {
-                       Console.WriteLine(String.Format("{0} - {1}", exp.Message, exp.StackTrace));
-                       failedList.Add(this.fileList[ii]);
-                   }
-               }
-               if (token.IsCancellationRequested)
-               {
-                   this.OnProcessingCancelled();
-               }
-               else
-               {
-                   this.OnProcessingComplete(failedList.Count);
-               }
-           }, token);
+            }, token);
 
         }
 
@@ -176,9 +122,6 @@ namespace PhotoResizer
             // Does any tasks which should be done when processing begins
             this.btnProcess.Text = "Cancel";
             SetControlsEnable(false);
-            this.isProcessing = true;
-            SetProgress(0);
-            SetCurrentProgress(0, "");
         }
         
         private void SetControlsEnable(bool enbl)
@@ -196,7 +139,7 @@ namespace PhotoResizer
             this.nudVideoQuality.Enabled = enbl;
         }
 
-        private void OnProcessingComplete(int numFailed)
+        private void OnProcessingComplete(ProcessingResult result)
         {
             // InvokeRequired required compares the thread ID of the
             // calling thread to the thread ID of the creating thread.
@@ -204,16 +147,15 @@ namespace PhotoResizer
             if (this.lblProgress.InvokeRequired)
             {
                 SetLblProgressCallback d = new SetLblProgressCallback(OnProcessingComplete);
-                this.Invoke(d, new object[] { numFailed });
+                this.Invoke(d, new object[] { result.numFailed });
             }
             else
             {
-                lblProgress.Text = string.Format("Processing complete on {0} files. {1} files failed.",
-                                this.fileList.Count.ToString(),
-                                numFailed.ToString());
-                this.isProcessing = false;
+                lblProgress.Text = string.Format("Processing complete on {0} of {1} files. {2} files failed.",
+                                result.numComplete.ToString(),
+                                result.numTotal.ToString(),
+                                result.numFailed.ToString());
                 this.btnProcess.Text = "Process Files";
-                SetCurrentProgress(100, "");
                 SetControlsEnable(true);
             }            
         }
@@ -227,85 +169,39 @@ namespace PhotoResizer
             else
             {
                 lblProgress.Text += " (cancelled)";
-                this.isProcessing = false;
                 this.btnProcess.Text = "Process Files";
                 SetControlsEnable(true);
                 this.cancelSource = new CancellationTokenSource(); // reset cancel token
             }
         }
-
         
-        private void OnJobEncodeProgress(object sender, EncodeProgressEventArgs e)
-        {
-            SetCurrentProgress((int)(((e.CurrentPass - 1) * 100 + e.Progress) / e.TotalPasses), 
-                                e.CurrentItem.SourceFileName);
-        }
-        
-
-        private static string GetOutputFilename(string filename, videoOutTypeOptions outType)
-        {
-            // Gets an output filename
-            string extension = Path.GetExtension(filename);
-            switch (outType)
-            {
-                case videoOutTypeOptions.WMV:
-                    extension = ".wmv";
-                    break;
-            }
-            return _CreateOutputFilename(filename, extension);
-        }
-        private static string GetOutputFilename(string filename, outTypeOptions outType)
-        {
-            // Gets an output filename
-            string extension = Path.GetExtension(filename);
-            switch (outType)
-            {
-                case outTypeOptions.BMP:
-                    extension = ".bmp";
-                    break;
-                case outTypeOptions.GIF:
-                    extension = ".gif";
-                    break;
-                case outTypeOptions.JPG:
-                    extension = ".jpg";
-                    break;
-                case outTypeOptions.PNG:
-                    extension = ".png";
-                    break;
-                case outTypeOptions.TIF:
-                    extension = ".tif";
-                    break;
-            }
-            return _CreateOutputFilename(filename, extension);
-        }
-        private static string _CreateOutputFilename(string filename, string extension)
-        {
-            return Path.Combine(Path.GetDirectoryName(filename), "Resized", string.Concat(Path.GetFileNameWithoutExtension(filename), extension));
-        }
-
         private void SetFileCount()
         {
-            lblNumFiles.Text = this.fileList.Count.ToString() + " files selected.";
+            lblNumFiles.Text = MP.GetNumFiles().ToString() + " files selected.";
         }
 
-        private void SetProgress(int numComplete)
+        private void UpdateOnProgress(object sender, ProgressEventArgs e)
+        {
+            SetProgress(e);
+        }
+
+        private void SetProgress(ProgressEventArgs e)
         {
             if (this.lblProgress.InvokeRequired)
             {
                 SetProgressDelegate d = new SetProgressDelegate(SetProgress);
-                this.Invoke(d, new object[] { numComplete });
+                this.Invoke(d, new object[] { e });
             }
             else
             {
-                int numTotal = this.fileList.Count;
-                lblProgress.Text = "Processed " + numComplete.ToString() + " of " + numTotal.ToString() + " files.";
-                if (numTotal == 0)
+                lblProgress.Text = "Processed " + e.filesComplete.ToString() + " of " + e.totalFiles.ToString() + " files.";
+                if (e.totalFiles == 0)
                 {
                     pbar1.Value = 0;
                 }
                 else
                 {
-                    pbar1.Value = numComplete * pbar1.Maximum / numTotal;
+                    pbar1.Value = Convert.ToInt32(e.totalProgress * pbar1.Maximum);
                 }
             }
         }
@@ -318,15 +214,10 @@ namespace PhotoResizer
             }
             else
             {
-                int numTotal = this.fileList.Count;
+                int numTotal = MP.GetNumFiles();
                 lblFileProgress.Text = "Processing file " + currentFile;
                 pbar2.Value = currentProgress;
             }
-        }
-
-        private bool IsVideoFile(string filename)
-        {
-            return videoExt.Contains(Path.GetExtension(filename).ToLower());
         }
 
         private void cbxResizeType_SelectedIndexChanged(object sender, EventArgs e)
@@ -369,7 +260,7 @@ namespace PhotoResizer
 
         private void lblDragFiles_DragEnter(object sender, DragEventArgs e)
         {
-            if (this.isProcessing)
+            if (MP.isProcessing)
             {
                 return;
             }
@@ -380,23 +271,23 @@ namespace PhotoResizer
         }
         private void lblDragFiles_DragDrop(object sender, DragEventArgs e)
         {
-            if (this.isProcessing)
+            if (MP.isProcessing)
             {
                 return;
             }
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
-            int oldCount = this.fileList.Count;
-            AddNewFilesToList(files, allExt, this.fileList);
-
-            int numNew = this.fileList.Count - oldCount;
+            int oldCount = MP.GetNumFiles();
+            MP.AddFiles(files);
+            
+            int numNew = MP.GetNumFiles() - oldCount;
             int numIgnored = files.Length - numNew;
             this.statusInfo.Text = numNew.ToString() + " new files were added. " + numIgnored.ToString() + " were ignored.";
             SetFileCount();
         }
         private void lblDragTrimVideo_DragEnter(object sender, DragEventArgs e)
         {
-            if (this.isProcessing)
+            if (MP.isProcessing)
             {
                 return;
             }
@@ -407,22 +298,21 @@ namespace PhotoResizer
         }
         private void lblDragTrimVideo_DragDrop(object sender, DragEventArgs e)
         {
-            if (this.isProcessing)
+            if (MP.isProcessing)
             {
                 return;
             }
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
-            List<string> allowedFiles = new List<string>();
-            AddNewFilesToList(files, videoExt, allowedFiles);
-            if (allowedFiles.Count == 0)
+            string[] allowedFiles = MP.GetAllowedVideoFiles(files);
+            if (allowedFiles.Length == 0)
             {
                 this.statusInfo.Text = "None of the dragged files were supported video files.";
                 return;
             }
 
             string filename = allowedFiles[0];
-            if (this.fileList.Contains(filename))
+            if (MP.IsInList(filename))
             {
                 this.statusInfo.Text = "Dragged file is already in the list.";
                 return;
@@ -434,9 +324,7 @@ namespace PhotoResizer
             {
                 case DialogResult.OK:
                     Tuple<double, double> startStop = trimmer.GetTimeRange();
-                    this.trimRanges.Add(startStop);
-                    this.trimFiles.Add(filename);
-                    this.fileList.Add(filename);
+                    MP.AddTrimmedVideo(filename, startStop);
                     this.statusInfo.Text = "1 new file was added.";
                     SetFileCount();
                     break;
@@ -447,52 +335,10 @@ namespace PhotoResizer
             trimmer.Dispose();
         }
 
-        private static void AddNewFilesToList(string[] files, string[] extensions, List<string>currentList)
-        {
-            // Since currentList is passed by reference we can just modify it
-
-            foreach (string droppedFile in files)
-            {
-                try
-                {
-                    FileAttributes attr = File.GetAttributes(@droppedFile);
-                    if (attr.HasFlag(FileAttributes.Directory))
-                    {
-                        // It's a directory - get list of all files inside it recursively
-                        List<string> subFiles = extensions
-                                .SelectMany(i => Directory.EnumerateFiles(droppedFile, "*" + i, SearchOption.AllDirectories))
-                                .ToList();
-
-                        foreach (string subFile in subFiles)
-                        {
-                            if (!currentList.Contains(subFile))
-                            {
-                                currentList.Add(subFile);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // It's a file
-                        string thisExt = Path.GetExtension(droppedFile).ToLower();
-                        if (extensions.Contains(thisExt) && !currentList.Contains(droppedFile))
-                        {
-                            currentList.Add(droppedFile);
-                        }
-                    }
-                }
-                catch { Console.WriteLine("Failed to read a dropped file."); }
-            }
-        }
-
-
         private void btnClearFiles_Click(object sender, EventArgs e)
         {
-            this.fileList = new List<string>();
-            this.trimFiles = new List<string>();
-            this.trimRanges = new List<Tuple<double, double>>();
             SetFileCount();
-            SetProgress(0);
+            SetProgress(new ProgressEventArgs(0, 0, 0, ""));
             SetCurrentProgress(0, "(processing not started)");
         }
 
@@ -514,15 +360,16 @@ namespace PhotoResizer
 
         private void btnShowSelected_Click(object sender, EventArgs e)
         {
+            List<string> fileList = MP.GetFileList();
             string dispString = "";
             int count = 0;
-            foreach (string filename in this.fileList)
+            foreach (string filename in fileList)
             {
                 dispString += (filename + "\r\n");
                 count++;
                 if (count >= 50)
                 {
-                    dispString += String.Format("...and {0} more files.", (this.fileList.Count - count).ToString());
+                    dispString += String.Format("...and {0} more files.", (fileList.Count - count).ToString());
                     break;
                 }
             }
