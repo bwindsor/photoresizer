@@ -5,7 +5,7 @@ All common image input and output formats are supported. At present video is lim
 ## Installation
 Microsoft .NET framework v4.0 or above is required to run the program. Almost all modern computers will have this already installed.
 
-1. Download and install [Microsoft Expression Encoder](https://www.microsoft.com/en-gb/download/details.aspx?id=18974) from the link above.
+1. Download and install [Microsoft Expression Encoder](https://www.microsoft.com/en-gb/download/details.aspx?id=18974).
 2. [Download the latest version of the software](https://github.com/bwindsor/photoresizer/releases/latest) and pick the zip file called vX.X.zip)
 3. Extract the zip file somewhere on your computer.
 4. Run PhotoResizer.exe
