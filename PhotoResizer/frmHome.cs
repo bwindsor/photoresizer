@@ -30,6 +30,9 @@ namespace PhotoResizer
         public frmHome()
         {
             InitializeComponent();
+
+            this.cbxOutputType.Items.AddRange(OutputStringTypes.GetImageTypes());
+            this.cbxVideoOutputType.Items.AddRange(OutputStringTypes.GetVideoTypes());
             this.cbxResizeType.SelectedIndex = 0;
             this.cbxOutputType.SelectedIndex = 0;
             this.txtResize.Text = this.comboTxtDefaults[this.cbxResizeType.SelectedIndex].ToString();

@@ -24,6 +24,21 @@ namespace PhotoResizeLib
     /// </summary>
     public enum videoOutTypeOptions : int { WMV };
 
+    public class OutputStringTypes
+    {
+        private static string[] imageTypes = new string[] { "Match input", "JPG", "PNG", "BMP", "GIF", "TIF" };
+        private static string[] videoTypes = new string[] { "WMV" };
+
+        public static string[] GetImageTypes()
+        {
+            return OutputStringTypes.imageTypes;
+        }
+        public static string[] GetVideoTypes()
+        {
+            return OutputStringTypes.videoTypes;
+        }
+    }
+
     /// <summary>
     /// Delegate function which is called to update during processing.
     /// </summary>
