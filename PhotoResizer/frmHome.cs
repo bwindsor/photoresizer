@@ -38,10 +38,28 @@ namespace PhotoResizer
             this.txtResize.Text = this.comboTxtDefaults[this.cbxResizeType.SelectedIndex].ToString();
             this.cbxVideoOutputType.SelectedIndex = 0;
             this.cbxVideoResizeType.SelectedIndex = 0;
+
             this.lblDragFiles.DragEnter += new DragEventHandler(lblDragFiles_DragEnter);
             this.lblDragFiles.DragDrop += new DragEventHandler(lblDragFiles_DragDrop);
             this.lblDragTrimVideo.DragEnter += new DragEventHandler(lblDragTrimVideo_DragEnter);
             this.lblDragTrimVideo.DragDrop += new DragEventHandler(lblDragTrimVideo_DragDrop);
+
+            string[] imageExt = MediaProcessor.GetAllAllowedImageExtensions();
+            string[] videoExt = MediaProcessor.GetAllAllowedVideoExtensions();
+            string allTooltip = "";
+            string videoTooltip = "";
+            for (int ii = 0; ii < imageExt.Length; ii++)
+            {
+                allTooltip += (imageExt[ii] + " ");
+            }
+            allTooltip += "\r\n";
+            for (int ii = 0; ii < videoExt.Length; ii++)
+            {
+                allTooltip += (videoExt[ii] + " ");
+                videoTooltip += (videoExt[ii] + " ");
+            }
+            this.toolTip1.SetToolTip(this.lblDragFiles, allTooltip);
+            this.toolTip1.SetToolTip(this.lblDragTrimVideo, videoTooltip);
         }
 
 
@@ -278,7 +296,11 @@ namespace PhotoResizer
             
             int numNew = MP.GetNumFiles() - oldCount;
             int numIgnored = files.Length - numNew;
-            this.statusInfo.Text = numNew.ToString() + " new files were added. " + numIgnored.ToString() + " were ignored.";
+            this.statusInfo.Text = numNew.ToString() + " new files were added.";
+            if (numIgnored > 0)
+            {
+                this.statusInfo.Text += (" " + numIgnored.ToString() + " were ignored due to already being in the list or having an unsupported file type.");
+            }
             SetFileCount();
         }
         private void lblDragTrimVideo_DragEnter(object sender, DragEventArgs e)
