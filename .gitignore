@@ -4,3 +4,7 @@
 
 /PhotoResizer/bin
 /PhotoResizer/obj
+/PhotoResizeLib/obj/Release
+/PhotoResizeLib/bin/Release
+/PhotoResizeLib/bin/Debug
+/PhotoResizeLib/obj/Debug

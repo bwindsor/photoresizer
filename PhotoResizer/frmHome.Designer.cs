@@ -112,7 +112,7 @@ namespace PhotoResizer
             this.lblDragFiles.Name = "lblDragFiles";
             this.lblDragFiles.Size = new System.Drawing.Size(376, 136);
             this.lblDragFiles.TabIndex = 0;
-            this.lblDragFiles.Text = "Drag Folders or Files Here";
+            this.lblDragFiles.Text = "Drag Folders or Files Here\r\n(Photos and Videos)";
             this.lblDragFiles.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // btnClearFiles
@@ -211,13 +211,6 @@ namespace PhotoResizer
             // 
             this.cbxOutputType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbxOutputType.FormattingEnabled = true;
-            this.cbxOutputType.Items.AddRange(new object[] {
-            "Match input",
-            "JPG",
-            "PNG",
-            "BMP",
-            "GIF",
-            "TIF"});
             this.cbxOutputType.Location = new System.Drawing.Point(7, 69);
             this.cbxOutputType.Name = "cbxOutputType";
             this.cbxOutputType.Size = new System.Drawing.Size(121, 21);
@@ -297,8 +290,6 @@ namespace PhotoResizer
             // 
             this.cbxVideoOutputType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbxVideoOutputType.FormattingEnabled = true;
-            this.cbxVideoOutputType.Items.AddRange(new object[] {
-            "WMV"});
             this.cbxVideoOutputType.Location = new System.Drawing.Point(9, 71);
             this.cbxVideoOutputType.Name = "cbxVideoOutputType";
             this.cbxVideoOutputType.Size = new System.Drawing.Size(121, 21);
@@ -353,7 +344,7 @@ namespace PhotoResizer
             this.lblDragTrimVideo.Name = "lblDragTrimVideo";
             this.lblDragTrimVideo.Size = new System.Drawing.Size(185, 136);
             this.lblDragTrimVideo.TabIndex = 25;
-            this.lblDragTrimVideo.Text = "Drag Videos To Trim Here (one at a time)";
+            this.lblDragTrimVideo.Text = "Trim Video:\r\nDrag Videos To Trim Here (one at a time)";
             this.lblDragTrimVideo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // statusStrip
