@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Microsoft.Expression.Encoder;
 using PhotoResizeLib;
 
 namespace PhotoResizer
@@ -21,7 +20,7 @@ namespace PhotoResizer
         delegate void SetLblProgressCallback(ProcessingResult result);
         delegate void SetProgressDelegate(ProgressEventArgs e);
         delegate void ProcessingCancelledDelegate();
-        delegate void SetCurrentProgressDelegate(int currentProgress, string currentFile);
+        delegate void SetCurrentProgressDelegate(ProgressEventArgs e);
         
         private int[] comboTxtDefaults = { 50, 1000, 2000 };
         private int comboLastIdx = 0;
@@ -56,34 +55,50 @@ namespace PhotoResizer
                 MessageBox.Show("No files selected.", "No files selected", MessageBoxButtons.OK);
                 return;
             }
-            int resizeValue = TryReadResizeText(this.txtResize, (comboOptions)this.cbxResizeType.SelectedIndex);
-            if (resizeValue < 0)
+            int resizeValue = 0;
+            bool success = MediaProcessorOptions.TryParseResizeValue(this.txtResize.Text, (comboOptions)this.cbxResizeType.SelectedIndex, out resizeValue);
+            if (!success)
             {
                 MessageBox.Show("Invalid value entered for resizing images to.", "Invalid entry", MessageBoxButtons.OK);
                 return;
             }
-            int videoResizeValue = TryReadResizeText(this.txtVideoResize, (comboOptions)this.cbxVideoResizeType.SelectedIndex);
-            if (videoResizeValue < 0)
+            int videoResizeValue = 0;
+            success = MediaProcessorOptions.TryParseResizeValue(this.txtVideoResize.Text, (comboOptions)this.cbxVideoResizeType.SelectedIndex, out videoResizeValue);
+            if (!success)
             {
                 MessageBox.Show("Invalid value entered for resizing videos to.", "Invalid entry", MessageBoxButtons.OK);
                 return;
             }
-
-            this.OnProcessingStart();
-
+            
             MediaProcessorOptions options = new MediaProcessorOptions(
-                imageResizeType: (comboOptions)this.cbxResizeType.SelectedIndex,
-                videoResizeType: (comboOptions)this.cbxVideoResizeType.SelectedIndex,
-                imageOutType: (outTypeOptions)this.cbxOutputType.SelectedIndex,
-                videoOutType: (videoOutTypeOptions)this.cbxVideoOutputType.SelectedIndex,
-                imageResizeValue: resizeValue,
-                videoResizeValue: videoResizeValue,
-                jpegQuality: (int)nudQuality.Value,
-                videoQuality: (int)nudVideoQuality.Value
+                (comboOptions)this.cbxResizeType.SelectedIndex,
+                (comboOptions)this.cbxVideoResizeType.SelectedIndex,
+                (outTypeOptions)this.cbxOutputType.SelectedIndex,
+                (videoOutTypeOptions)this.cbxVideoOutputType.SelectedIndex,
+                resizeValue,
+                videoResizeValue,
+                (int)nudQuality.Value,
+                (int)nudVideoQuality.Value
             );
             MP.SetOptions(options);
-            CancellationToken token = this.cancelSource.Token;
 
+            FileValidationResult val = MP.ValidateFileList();
+            if (val.noInputList.Count > 0 || val.folderFailedList.Count > 0)
+            {
+                MessageBox.Show(val.message, "Invalid file list", MessageBoxButtons.OK);
+                return;
+            }
+            if (val.outputExistsList.Count > 0)
+            {
+                DialogResult res = MessageBox.Show("Overwrite these files?\r\n\r\n" + val.message, "Files already exist", MessageBoxButtons.YesNo);
+                if (res == DialogResult.No)
+                {
+                    return;
+                }
+            }
+
+            CancellationToken token = this.cancelSource.Token;
+            this.OnProcessingStart();
             Task processingTask = Task.Factory.StartNew(() =>
             {
                 MP.Run(token, UpdateOnProgress);
@@ -127,6 +142,7 @@ namespace PhotoResizer
         private void SetControlsEnable(bool enbl)
         {
             this.btnClearFiles.Enabled = enbl;
+            this.btnShowSelected.Enabled = enbl;
 
             this.txtResize.Enabled = enbl;
             this.cbxOutputType.Enabled = enbl;
@@ -147,7 +163,7 @@ namespace PhotoResizer
             if (this.lblProgress.InvokeRequired)
             {
                 SetLblProgressCallback d = new SetLblProgressCallback(OnProcessingComplete);
-                this.Invoke(d, new object[] { result.numFailed });
+                this.Invoke(d, new object[] { result });
             }
             else
             {
@@ -157,6 +173,8 @@ namespace PhotoResizer
                                 result.numFailed.ToString());
                 this.btnProcess.Text = "Process Files";
                 SetControlsEnable(true);
+                MP.ClearFiles();
+                SetFileCount();
             }            
         }
         private void OnProcessingCancelled()
@@ -183,6 +201,7 @@ namespace PhotoResizer
         private void UpdateOnProgress(object sender, ProgressEventArgs e)
         {
             SetProgress(e);
+            SetCurrentProgress(e);
         }
 
         private void SetProgress(ProgressEventArgs e)
@@ -201,61 +220,35 @@ namespace PhotoResizer
                 }
                 else
                 {
-                    pbar1.Value = Convert.ToInt32(e.totalProgress * pbar1.Maximum);
+                    pbar1.Value = Convert.ToInt32(e.totalProgress * pbar1.Maximum / 100);
                 }
             }
         }
-        private void SetCurrentProgress(int currentProgress, string currentFile)
+        private void SetCurrentProgress(ProgressEventArgs e)
         {
             if (this.lblFileProgress.InvokeRequired)
             {
                 SetCurrentProgressDelegate d = new SetCurrentProgressDelegate(SetCurrentProgress);
-                this.Invoke(d, new object[] { currentProgress, currentFile });
+                this.Invoke(d, new object[] { e });
             }
             else
             {
                 int numTotal = MP.GetNumFiles();
-                lblFileProgress.Text = "Processing file " + currentFile;
-                pbar2.Value = currentProgress;
+                lblFileProgress.Text = "Processing file " + e.currentFile;
+                pbar2.Value = Convert.ToInt32(e.fileProgress);
             }
         }
 
         private void cbxResizeType_SelectedIndexChanged(object sender, EventArgs e)
         {
-            int resizeValue = TryReadResizeText(this.txtResize, (comboOptions)this.comboLastIdx);
-            if (resizeValue >= 0)
+            int resizeValue = 0;
+            bool success = MediaProcessorOptions.TryParseResizeValue(this.txtResize.Text, (comboOptions)this.comboLastIdx, out resizeValue);
+            if (!success)
             {
                 this.comboTxtDefaults[this.comboLastIdx] = resizeValue;
             }
             this.txtResize.Text = this.comboTxtDefaults[this.cbxResizeType.SelectedIndex].ToString();
             this.comboLastIdx = this.cbxResizeType.SelectedIndex;
-        }
-
-        private int TryReadResizeText(TextBox txtBox, comboOptions comboIdx)
-        {
-            int x;
-            bool success = int.TryParse(txtBox.Text, out x);
-
-            if (success)
-            {
-                switch (comboIdx)
-                {
-                    case comboOptions.percent:
-                        if (x < 1 || x > 1000) { x = -1; }
-                        break;
-                    case comboOptions.height:
-                        if (x < 1 || x > 10000) { x = -1; }
-                        break;
-                    case comboOptions.width:
-                        if (x < 1 || x > 10000) { x = -1; }
-                        break;
-                };
-            }
-            else
-            {
-                x = -1;
-            }
-            return x;
         }
 
         private void lblDragFiles_DragEnter(object sender, DragEventArgs e)
@@ -337,9 +330,10 @@ namespace PhotoResizer
 
         private void btnClearFiles_Click(object sender, EventArgs e)
         {
+            MP.ClearFiles();
             SetFileCount();
             SetProgress(new ProgressEventArgs(0, 0, 0, ""));
-            SetCurrentProgress(0, "(processing not started)");
+            SetCurrentProgress(new ProgressEventArgs(0, 0, 0, "(processing not started)"));
         }
 
         private void cbxOutputType_SelectedIndexChanged(object sender, EventArgs e)

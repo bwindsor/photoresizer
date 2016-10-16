@@ -112,7 +112,7 @@ namespace PhotoResizer
             this.lblDragFiles.Name = "lblDragFiles";
             this.lblDragFiles.Size = new System.Drawing.Size(376, 136);
             this.lblDragFiles.TabIndex = 0;
-            this.lblDragFiles.Text = "Drag Folders or Files Here";
+            this.lblDragFiles.Text = "Drag Folders or Files Here\r\n(Photos and Videos)";
             this.lblDragFiles.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // btnClearFiles
@@ -353,7 +353,7 @@ namespace PhotoResizer
             this.lblDragTrimVideo.Name = "lblDragTrimVideo";
             this.lblDragTrimVideo.Size = new System.Drawing.Size(185, 136);
             this.lblDragTrimVideo.TabIndex = 25;
-            this.lblDragTrimVideo.Text = "Drag Videos To Trim Here (one at a time)";
+            this.lblDragTrimVideo.Text = "Trim Video:\r\nDrag Videos To Trim Here (one at a time)";
             this.lblDragTrimVideo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // statusStrip

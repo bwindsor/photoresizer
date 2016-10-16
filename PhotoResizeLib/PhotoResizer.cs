@@ -11,112 +11,6 @@ using System.Threading;
 namespace PhotoResizeLib
 {
     /// <summary>
-    /// Specifies the way in which a resize value is interpreted (percentage scaling, fixed width, or fixed height)
-    /// </summary>
-    public enum comboOptions : int { percent, height, width };
-    /// <summary>
-    /// Specifies the output format of an image file.
-    /// </summary>
-    public enum outTypeOptions : int { match, JPG, PNG, BMP, GIF, TIF };
-    /// <summary>
-    /// Specifies the output format of a video file.
-    /// </summary>
-    public enum videoOutTypeOptions : int { WMV };
-
-    /// <summary>
-    /// Delegate function which is called to update during processing.
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    public delegate void ProgressCallback(object sender, ProgressEventArgs e);
-
-    public class ProgressEventArgs
-    {
-        public double totalProgress { get; private set; }
-        public double fileProgress { get; private set; }
-        public string currentFile { get; private set; }
-        public int filesComplete { get; private set; }
-        public int totalFiles { get; private set; }
-
-        public ProgressEventArgs(double fileProgress, int filesComplete, int totalFiles, string currentFile)
-        {
-            this.totalProgress = (double)filesComplete / (double)totalFiles;
-            this.fileProgress = fileProgress;
-            this.currentFile = currentFile;
-            this.filesComplete = filesComplete;
-            this.totalFiles = totalFiles;
-        }
-    }
-
-    /// <summary>
-    /// Thrown if a file already exists and it is expected not to.
-    /// </summary>
-    public class FileAlreadyExistsException : Exception
-    {
-        /// <summary>
-        /// Initialises a new instance of the FileAlreadyExistsException class
-        /// </summary>
-        public FileAlreadyExistsException() : base()
-        { }
-
-        /// <summary>
-        /// Initialises a new instance of the FileAlreadyExistsException class with the message message
-        /// </summary>
-        /// <param name="message">The message that describes the error</param>
-        public FileAlreadyExistsException(string message) : base(message)
-        {
-        }
-    }
-
-    public class MediaProcessorOptions
-    {
-        public comboOptions imageResizeType { get; private set; }
-        public comboOptions videoResizeType { get; private set; }
-        public outTypeOptions imageOutType { get; private set; }
-        public videoOutTypeOptions videoOutType { get; private set; }
-        public int imageResizeValue { get; private set; }
-        public int videoResizeValue { get; private set; }
-        public int jpegQuality { get; private set; }
-        public int videoQuality { get; private set; }
-
-        public MediaProcessorOptions(comboOptions imageResizeType = comboOptions.percent, 
-                                     comboOptions videoResizeType = comboOptions.percent,
-                                     outTypeOptions imageOutType = outTypeOptions.JPG,
-                                     videoOutTypeOptions videoOutType = videoOutTypeOptions.WMV,
-                                     int imageResizeValue = 100,
-                                     int videoResizeValue = 100,
-                                     int jpegQuality = 98,
-                                     int videoQuality = 100)
-        {
-            this.imageResizeType = imageResizeType;
-            this.videoResizeType = videoResizeType;
-            this.imageOutType = imageOutType;
-            this.videoOutType = videoOutType;
-            this.imageResizeValue = imageResizeValue;
-            this.videoResizeValue = videoResizeValue;
-            this.jpegQuality = jpegQuality;
-            this.videoQuality = videoQuality;
-        }
-    }
-
-    public class ProcessingResult
-    {
-        public int numTotal { get; private set; }
-        public int numFailed { get; private set; }
-        public int numComplete { get; private set; }
-        public List<string> fileList;
-        public List<string> failedList;
-        public ProcessingResult(List<string> fileList, List<string> failedList)
-        {
-            this.numTotal = fileList.Count;
-            this.numFailed = failedList.Count;
-            this.numComplete = this.numTotal - this.numFailed;
-            this.fileList = fileList;
-            this.failedList = failedList;
-        }
-    }
-
-    /// <summary>
     /// Manages the processing of a set of media files.
     /// </summary>
     public class MediaProcessor
@@ -177,6 +71,47 @@ namespace PhotoResizeLib
             return new ProcessingResult(this.fileList, this.failedList);
         }
 
+        public FileValidationResult ValidateFileList()
+        {
+            FileValidationResult result = new FileValidationResult();
+            List<string> outFileList = this.GetOutputFileList();
+            for (int ii = 0; ii < this.fileList.Count; ii++)
+            {
+                bool isFolderSuccess = true;
+                try
+                {
+                    EnsureDir(outFileList[ii]); // Will throw exception if can't create folder
+                }
+                catch
+                {
+                    isFolderSuccess = false;
+                }
+
+                result.Push(this.fileList[ii], outFileList[ii],
+                            File.Exists(this.fileList[ii]),
+                            File.Exists(outFileList[ii]),
+                            isFolderSuccess);
+            }
+            return result;
+        }
+        private List<string> GetOutputFileList()
+        {
+            List<string> outFileList = new List<string>();
+            for (int ii = 0; ii < this.fileList.Count; ii++)
+            {
+                
+                if (IsVideoFile(this.fileList[ii]))
+                {
+                    outFileList.Add(GetOutputFilename(this.fileList[ii], this.options.videoOutType));
+                }
+                else
+                {
+                    outFileList.Add(GetOutputFilename(this.fileList[ii], this.options.imageOutType));
+                }
+            }
+            return outFileList;
+        }
+
         /// <summary>
         /// Runs the processing on this instance of the MediaProcessor
         /// </summary>
@@ -192,58 +127,35 @@ namespace PhotoResizeLib
             this.cancelToken = token;
 
             this.failedList = new List<string>();
+
+            List<string> outFileList = this.GetOutputFileList();
             for (int ii = 0; ii < this.fileList.Count; ii++)
             {
                 if (token.IsCancellationRequested) { break; }
                 try
                 {
-                    string outFilename = "";
-                    bool cont = true;
-                    bool isVideo = IsVideoFile(this.fileList[ii]);
-                    try
+                    if (!IsVideoFile(this.fileList[ii]))
                     {
-                        if (isVideo)
-                        {
-                            outFilename = GetOutputFilename(this.fileList[ii], this.options.imageOutType);
-                        }
-                        else
-                        {
-                            outFilename = GetOutputFilename(this.fileList[ii], this.options.videoOutType);
-                        }
-                        MediaProcessor.CheckFiles(this.fileList[ii], outFilename);
+                        DoOnProgress(this, new ProgressEventArgs(0, ii, this.GetNumFiles(), this.fileList[ii]));
+                        MediaProcessor.ProcessImageFile(this.fileList[ii], outFileList[ii], 
+                                    this.options.imageResizeValue, this.options.imageResizeType,
+                                    this.options.imageOutType, this.options.jpegQuality);
                     }
-                    catch (FileAlreadyExistsException exept)
+                    else
                     {
-                        // TODO - sort out the pre-check for files already existing instead of catching this
-                        // cont = ShouldContinueWhenFileExists(exept.Message);
-                        cont = true;
-                    }
-
-                    if (cont)
-                    {
-                        if (!IsVideoFile(this.fileList[ii]))
+                        Tuple<double, double> trimRange = null;
+                        int idx = this.trimFiles.FindIndex(a => a == this.fileList[ii]);
+                        if (idx >= 0)
                         {
-                            DoOnProgress(this, new ProgressEventArgs(0, 0, this.GetNumFiles(), this.fileList[ii]));
-                            MediaProcessor.ProcessImageFile(this.fileList[ii], outFilename, 
-                                        this.options.imageResizeValue, this.options.imageResizeType,
-                                        this.options.imageOutType, this.options.jpegQuality);
+                            trimRange = this.trimRanges[idx];
                         }
-                        else
-                        {
-                            Tuple<double, double> trimRange = null;
-                            int idx = this.trimFiles.FindIndex(a => a == this.fileList[ii]);
-                            if (idx >= 0)
-                            {
-                                trimRange = this.trimRanges[idx];
-                            }
-                            DoOnProgress(this, new ProgressEventArgs(0, 0, this.GetNumFiles(), this.fileList[ii]));
-                            MediaProcessor.ProcessVideoFile(this.fileList[ii], outFilename, 
-                                            this.options.videoResizeValue, this.options.videoResizeType, 
-                                            this.options.videoOutType, this.options.videoQuality, trimRange, OnVideoEncodeProgress);
-                        }
+                        DoOnProgress(this, new ProgressEventArgs(0, ii, this.GetNumFiles(), this.fileList[ii]));
+                        MediaProcessor.ProcessVideoFile(this.fileList[ii], outFileList[ii], 
+                                        this.options.videoResizeValue, this.options.videoResizeType, 
+                                        this.options.videoOutType, this.options.videoQuality, trimRange, OnVideoEncodeProgress);
                     }
-                    if (token.IsCancellationRequested) { break; }
                     DoOnProgress(this, new ProgressEventArgs(0, (ii + 1), this.GetNumFiles(), this.fileList[ii]));
+                    if (token.IsCancellationRequested) { break; }
                 }
                 catch (Exception exp)
                 {
@@ -273,7 +185,7 @@ namespace PhotoResizeLib
         private void OnProcessingComplete()
         {
             this.isProcessing = false;
-            this.DoOnProgress(this, new ProgressEventArgs(100, 100, this.GetNumFiles(), "."));
+            this.DoOnProgress(this, new ProgressEventArgs(100, this.GetNumFiles(), this.GetNumFiles(), "."));
         }
 
         public void AddFiles(string[] files)
@@ -353,25 +265,6 @@ namespace PhotoResizeLib
         public static string[] GetAllAllowedVideoExtensions()
         {
             return MediaProcessor.videoExt;
-        }
-
-        /// <summary>
-        /// Checks the input and output files. The input file must exist and the output file must not.
-        /// </summary>
-        /// <param name="inputFilename">The full path to the input file.</param>
-        /// <param name="outFile">The full path to the output file.</param>
-        /// <returns>Void. Throws exceptions if conditions are not satisified.</returns>
-        public static void CheckFiles(string inputFilename, string outFile)
-        {
-            if (!File.Exists(inputFilename))
-            {
-                throw new FileNotFoundException();
-            }
-            if (File.Exists(outFile))
-            {
-                throw new FileAlreadyExistsException(outFile + " already exists");
-            }
-            EnsureDir(outFile); // Will throw exception if can't create folder
         }
 
         /// <summary>
