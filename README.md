@@ -8,7 +8,7 @@ Microsoft .NET framework v4.0 or above is required to run the program. Almost al
 1. Download and install [Microsoft Expression Encoder](https://www.microsoft.com/en-gb/download/details.aspx?id=18974). This is only required to process videos.
 2. [Download the latest version of the software](https://github.com/bwindsor/photoresizer/releases/latest) and pick the zip file called vX.X.zip)
 3. Extract the zip file somewhere on your computer.
-4. Run PhotoResizer.exe
+4. Run `PhotoResizer.exe`. Your computer may ask whether you want to run the program (as it may detect it as a potential risk).  Select "Run anyway" if you wish to use the program and you trust that I haven't written a virus.
 
 ## For developers - dependencies
 * For the video part both for coding and for running the program, [Microsoft Expression Encoder](https://www.microsoft.com/en-gb/download/details.aspx?id=18974) is required to be installed. 
