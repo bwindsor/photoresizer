@@ -5,7 +5,7 @@ All common image input and output formats are supported. At present video is lim
 ## Installation
 Microsoft .NET framework v4.0 or above is required to run the program. Almost all modern computers will have this already installed.
 
-1. Download and install [Microsoft Expression Encoder](https://www.microsoft.com/en-gb/download/details.aspx?id=18974).
+1. Download and install [Microsoft Expression Encoder](https://www.microsoft.com/en-gb/download/details.aspx?id=18974). This is only required to process videos.
 2. [Download the latest version of the software](https://github.com/bwindsor/photoresizer/releases/latest) and pick the zip file called vX.X.zip)
 3. Extract the zip file somewhere on your computer.
 4. Run PhotoResizer.exe
@@ -22,3 +22,4 @@ Microsoft .NET framework v4.0 or above is required to run the program. Almost al
 * If you drag more than one file at the same time into this box only the first one will be used and the rest ignored. 
 * Any files which you add which have already been added will be ignored.
 * Any files which you add with unsupported file extensions will be ignored.
+* **Output files will be placed in a new folder called `Resized` alongside their original location.** For example the file `C:\Pics\MyPic.jpg` would be output to `C:\Pics\Resized\MyPic.jpg`.
