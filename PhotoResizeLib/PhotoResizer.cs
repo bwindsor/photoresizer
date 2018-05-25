@@ -30,6 +30,7 @@ namespace PhotoResizeLib
         private int filesComplete = 0;
         private double fileProgress = 0;
         private string currentFile = "";
+        private string fileSuffix = "";
 
         public MediaProcessor()
         {
@@ -39,6 +40,11 @@ namespace PhotoResizeLib
         public void SetOptions(MediaProcessorOptions options)
         {
             this.options = options;
+        }
+
+        public void SetFileSuffix(string suffix)
+        {
+            this.fileSuffix = suffix;
         }
 
         public int GetNumFiles()
@@ -102,11 +108,11 @@ namespace PhotoResizeLib
                 
                 if (IsVideoFile(this.fileList[ii]))
                 {
-                    outFileList.Add(GetOutputFilename(this.fileList[ii], this.options.videoOutType));
+                    outFileList.Add(GetOutputFilename(this.fileList[ii], this.options.videoOutType, this.fileSuffix));
                 }
                 else
                 {
-                    outFileList.Add(GetOutputFilename(this.fileList[ii], this.options.imageOutType));
+                    outFileList.Add(GetOutputFilename(this.fileList[ii], this.options.imageOutType, this.fileSuffix));
                 }
             }
             return outFileList;
@@ -531,7 +537,7 @@ namespace PhotoResizeLib
         /// <param name="filename">Full path of the input file.</param>
         /// <param name="outType">Output file type.</param>
         /// <returns></returns>
-        private static string GetOutputFilename(string filename, videoOutTypeOptions outType)
+        private static string GetOutputFilename(string filename, videoOutTypeOptions outType, string suffix)
         {
             // Gets an output filename
             string extension = Path.GetExtension(filename);
@@ -541,7 +547,7 @@ namespace PhotoResizeLib
                     extension = ".wmv";
                     break;
             }
-            return _CreateOutputFilename(filename, extension);
+            return _CreateOutputFilename(filename, extension, suffix);
         }
         /// <summary>
         /// Gets the output filename for an image file.
@@ -549,7 +555,7 @@ namespace PhotoResizeLib
         /// <param name="filename">Full path of the input file.</param>
         /// <param name="outType">Output file type.</param>
         /// <returns></returns>
-        private static string GetOutputFilename(string filename, outTypeOptions outType)
+        private static string GetOutputFilename(string filename, outTypeOptions outType, string suffix)
         {
             // Gets an output filename
             string extension = Path.GetExtension(filename);
@@ -571,17 +577,18 @@ namespace PhotoResizeLib
                     extension = ".tif";
                     break;
             }
-            return _CreateOutputFilename(filename, extension);
+            return _CreateOutputFilename(filename, extension, suffix);
         }
         /// <summary>
         /// Creates an output filename based on an input filename and the output extension
         /// </summary>
         /// <param name="filename">Full path of the input file.</param>
         /// <param name="extension">Extension of the output file.</param>
+        /// <param name="suffix">Suffix for the filename</param>
         /// <returns>A path with the correct extension inside a "resized" folder.</returns>
-        private static string _CreateOutputFilename(string filename, string extension)
+        private static string _CreateOutputFilename(string filename, string extension, string suffix)
         {
-            return Path.Combine(Path.GetDirectoryName(filename), MediaProcessor.outputSubfolderName, string.Concat(Path.GetFileNameWithoutExtension(filename), extension));
+            return Path.Combine(Path.GetDirectoryName(filename), MediaProcessor.outputSubfolderName, string.Concat(Path.GetFileNameWithoutExtension(filename), suffix, extension));
         }
 
 
