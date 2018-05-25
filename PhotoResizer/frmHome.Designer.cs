@@ -59,6 +59,8 @@ namespace PhotoResizer
             this.lblDragTrimVideo = new System.Windows.Forms.Label();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusInfo = new System.Windows.Forms.ToolStripStatusLabel();
+            this.txtSuffix = new System.Windows.Forms.TextBox();
+            this.lblSuffix = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudQuality)).BeginInit();
             this.panel2.SuspendLayout();
@@ -68,26 +70,29 @@ namespace PhotoResizer
             // 
             // pbar1
             // 
-            this.pbar1.Location = new System.Drawing.Point(8, 330);
+            this.pbar1.Location = new System.Drawing.Point(14, 676);
+            this.pbar1.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.pbar1.Name = "pbar1";
-            this.pbar1.Size = new System.Drawing.Size(565, 23);
+            this.pbar1.Size = new System.Drawing.Size(1130, 44);
             this.pbar1.TabIndex = 13;
             // 
             // lblNumFiles
             // 
             this.lblNumFiles.AutoSize = true;
             this.lblNumFiles.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblNumFiles.Location = new System.Drawing.Point(12, 154);
+            this.lblNumFiles.Location = new System.Drawing.Point(24, 296);
+            this.lblNumFiles.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblNumFiles.Name = "lblNumFiles";
-            this.lblNumFiles.Size = new System.Drawing.Size(118, 17);
+            this.lblNumFiles.Size = new System.Drawing.Size(210, 31);
             this.lblNumFiles.TabIndex = 1;
             this.lblNumFiles.Text = "0 files selected";
             // 
             // btnProcess
             // 
-            this.btnProcess.Location = new System.Drawing.Point(8, 288);
+            this.btnProcess.Location = new System.Drawing.Point(14, 595);
+            this.btnProcess.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.btnProcess.Name = "btnProcess";
-            this.btnProcess.Size = new System.Drawing.Size(565, 23);
+            this.btnProcess.Size = new System.Drawing.Size(1130, 44);
             this.btnProcess.TabIndex = 11;
             this.btnProcess.Text = "&Process Files";
             this.btnProcess.UseVisualStyleBackColor = true;
@@ -96,9 +101,10 @@ namespace PhotoResizer
             // lblProgress
             // 
             this.lblProgress.AutoSize = true;
-            this.lblProgress.Location = new System.Drawing.Point(5, 314);
+            this.lblProgress.Location = new System.Drawing.Point(8, 645);
+            this.lblProgress.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblProgress.Name = "lblProgress";
-            this.lblProgress.Size = new System.Drawing.Size(108, 13);
+            this.lblProgress.Size = new System.Drawing.Size(219, 25);
             this.lblProgress.TabIndex = 12;
             this.lblProgress.Text = "Processed 0 of 0 files";
             // 
@@ -108,18 +114,20 @@ namespace PhotoResizer
             this.lblDragFiles.BackColor = System.Drawing.SystemColors.GradientInactiveCaption;
             this.lblDragFiles.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lblDragFiles.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblDragFiles.Location = new System.Drawing.Point(6, 9);
+            this.lblDragFiles.Location = new System.Drawing.Point(12, 17);
+            this.lblDragFiles.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblDragFiles.Name = "lblDragFiles";
-            this.lblDragFiles.Size = new System.Drawing.Size(376, 136);
+            this.lblDragFiles.Size = new System.Drawing.Size(750, 260);
             this.lblDragFiles.TabIndex = 0;
             this.lblDragFiles.Text = "Drag Folders or Files Here\r\n(Photos and Videos)";
             this.lblDragFiles.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // btnClearFiles
             // 
-            this.btnClearFiles.Location = new System.Drawing.Point(217, 151);
+            this.btnClearFiles.Location = new System.Drawing.Point(434, 290);
+            this.btnClearFiles.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.btnClearFiles.Name = "btnClearFiles";
-            this.btnClearFiles.Size = new System.Drawing.Size(165, 23);
+            this.btnClearFiles.Size = new System.Drawing.Size(330, 44);
             this.btnClearFiles.TabIndex = 2;
             this.btnClearFiles.Text = "&Clear files";
             this.btnClearFiles.UseVisualStyleBackColor = true;
@@ -127,9 +135,10 @@ namespace PhotoResizer
             // 
             // btnShowSelected
             // 
-            this.btnShowSelected.Location = new System.Drawing.Point(388, 151);
+            this.btnShowSelected.Location = new System.Drawing.Point(776, 290);
+            this.btnShowSelected.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.btnShowSelected.Name = "btnShowSelected";
-            this.btnShowSelected.Size = new System.Drawing.Size(185, 23);
+            this.btnShowSelected.Size = new System.Drawing.Size(370, 44);
             this.btnShowSelected.TabIndex = 3;
             this.btnShowSelected.Text = "&Show Selected";
             this.btnShowSelected.UseVisualStyleBackColor = true;
@@ -138,25 +147,28 @@ namespace PhotoResizer
             // lblFileProgress
             // 
             this.lblFileProgress.AutoSize = true;
-            this.lblFileProgress.Location = new System.Drawing.Point(5, 356);
+            this.lblFileProgress.Location = new System.Drawing.Point(8, 726);
+            this.lblFileProgress.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblFileProgress.Name = "lblFileProgress";
-            this.lblFileProgress.Size = new System.Drawing.Size(66, 13);
+            this.lblFileProgress.Size = new System.Drawing.Size(137, 25);
             this.lblFileProgress.TabIndex = 17;
             this.lblFileProgress.Text = "File progress";
             // 
             // pbar2
             // 
-            this.pbar2.Location = new System.Drawing.Point(8, 372);
+            this.pbar2.Location = new System.Drawing.Point(14, 756);
+            this.pbar2.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.pbar2.Name = "pbar2";
-            this.pbar2.Size = new System.Drawing.Size(565, 23);
+            this.pbar2.Size = new System.Drawing.Size(1130, 44);
             this.pbar2.TabIndex = 18;
             // 
             // lblQuality
             // 
             this.lblQuality.AutoSize = true;
-            this.lblQuality.Location = new System.Drawing.Point(134, 53);
+            this.lblQuality.Location = new System.Drawing.Point(268, 102);
+            this.lblQuality.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblQuality.Name = "lblQuality";
-            this.lblQuality.Size = new System.Drawing.Size(69, 13);
+            this.lblQuality.Size = new System.Drawing.Size(140, 25);
             this.lblQuality.TabIndex = 16;
             this.lblQuality.Text = "&JPEG Quality";
             this.toolTip1.SetToolTip(this.lblQuality, "Determines how much a JPEG image is compressed.\r\nA higher number means better qua" +
@@ -166,9 +178,10 @@ namespace PhotoResizer
             // lblVideoQuality
             // 
             this.lblVideoQuality.AutoSize = true;
-            this.lblVideoQuality.Location = new System.Drawing.Point(133, 54);
+            this.lblVideoQuality.Location = new System.Drawing.Point(266, 104);
+            this.lblVideoQuality.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblVideoQuality.Name = "lblVideoQuality";
-            this.lblVideoQuality.Size = new System.Drawing.Size(69, 13);
+            this.lblVideoQuality.Size = new System.Drawing.Size(140, 25);
             this.lblVideoQuality.TabIndex = 28;
             this.lblVideoQuality.Text = "&Video Quality";
             this.toolTip1.SetToolTip(this.lblVideoQuality, "A value of 100 here corresponds to 8 kilobits \r\nper second (1 kilobyte per second" +
@@ -185,21 +198,23 @@ namespace PhotoResizer
             this.panel1.Controls.Add(this.txtResize);
             this.panel1.Controls.Add(this.lbl1);
             this.panel1.Controls.Add(this.cbxResizeType);
-            this.panel1.Location = new System.Drawing.Point(8, 182);
+            this.panel1.Location = new System.Drawing.Point(16, 350);
+            this.panel1.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(281, 100);
+            this.panel1.Size = new System.Drawing.Size(560, 190);
             this.panel1.TabIndex = 23;
             // 
             // nudQuality
             // 
-            this.nudQuality.Location = new System.Drawing.Point(140, 70);
+            this.nudQuality.Location = new System.Drawing.Point(280, 135);
+            this.nudQuality.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.nudQuality.Minimum = new decimal(new int[] {
             10,
             0,
             0,
             0});
             this.nudQuality.Name = "nudQuality";
-            this.nudQuality.Size = new System.Drawing.Size(120, 20);
+            this.nudQuality.Size = new System.Drawing.Size(240, 31);
             this.nudQuality.TabIndex = 17;
             this.nudQuality.Value = new decimal(new int[] {
             98,
@@ -211,33 +226,37 @@ namespace PhotoResizer
             // 
             this.cbxOutputType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbxOutputType.FormattingEnabled = true;
-            this.cbxOutputType.Location = new System.Drawing.Point(7, 69);
+            this.cbxOutputType.Location = new System.Drawing.Point(14, 133);
+            this.cbxOutputType.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.cbxOutputType.Name = "cbxOutputType";
-            this.cbxOutputType.Size = new System.Drawing.Size(121, 21);
+            this.cbxOutputType.Size = new System.Drawing.Size(238, 33);
             this.cbxOutputType.TabIndex = 15;
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(4, 53);
+            this.label1.Location = new System.Drawing.Point(8, 102);
+            this.label1.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(62, 13);
+            this.label1.Size = new System.Drawing.Size(123, 25);
             this.label1.TabIndex = 14;
             this.label1.Text = "&Output type";
             // 
             // txtResize
             // 
-            this.txtResize.Location = new System.Drawing.Point(7, 29);
+            this.txtResize.Location = new System.Drawing.Point(14, 56);
+            this.txtResize.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.txtResize.Name = "txtResize";
-            this.txtResize.Size = new System.Drawing.Size(112, 20);
+            this.txtResize.Size = new System.Drawing.Size(220, 31);
             this.txtResize.TabIndex = 12;
             // 
             // lbl1
             // 
             this.lbl1.AutoSize = true;
-            this.lbl1.Location = new System.Drawing.Point(4, 12);
+            this.lbl1.Location = new System.Drawing.Point(8, 23);
+            this.lbl1.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lbl1.Name = "lbl1";
-            this.lbl1.Size = new System.Drawing.Size(86, 13);
+            this.lbl1.Size = new System.Drawing.Size(173, 25);
             this.lbl1.TabIndex = 11;
             this.lbl1.Text = "&Resize picture to";
             // 
@@ -249,9 +268,10 @@ namespace PhotoResizer
             "% of original size",
             "pixels high",
             "pixels wide"});
-            this.cbxResizeType.Location = new System.Drawing.Point(137, 28);
+            this.cbxResizeType.Location = new System.Drawing.Point(274, 54);
+            this.cbxResizeType.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.cbxResizeType.Name = "cbxResizeType";
-            this.cbxResizeType.Size = new System.Drawing.Size(133, 21);
+            this.cbxResizeType.Size = new System.Drawing.Size(262, 33);
             this.cbxResizeType.TabIndex = 13;
             // 
             // panel2
@@ -264,21 +284,23 @@ namespace PhotoResizer
             this.panel2.Controls.Add(this.txtVideoResize);
             this.panel2.Controls.Add(this.lblVideo);
             this.panel2.Controls.Add(this.cbxVideoResizeType);
-            this.panel2.Location = new System.Drawing.Point(295, 182);
+            this.panel2.Location = new System.Drawing.Point(590, 350);
+            this.panel2.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(278, 100);
+            this.panel2.Size = new System.Drawing.Size(554, 190);
             this.panel2.TabIndex = 24;
             // 
             // nudVideoQuality
             // 
-            this.nudVideoQuality.Location = new System.Drawing.Point(136, 70);
+            this.nudVideoQuality.Location = new System.Drawing.Point(272, 135);
+            this.nudVideoQuality.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.nudVideoQuality.Minimum = new decimal(new int[] {
             20,
             0,
             0,
             0});
             this.nudVideoQuality.Name = "nudVideoQuality";
-            this.nudVideoQuality.Size = new System.Drawing.Size(120, 20);
+            this.nudVideoQuality.Size = new System.Drawing.Size(240, 31);
             this.nudVideoQuality.TabIndex = 29;
             this.nudVideoQuality.Value = new decimal(new int[] {
             100,
@@ -290,34 +312,38 @@ namespace PhotoResizer
             // 
             this.cbxVideoOutputType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbxVideoOutputType.FormattingEnabled = true;
-            this.cbxVideoOutputType.Location = new System.Drawing.Point(9, 71);
+            this.cbxVideoOutputType.Location = new System.Drawing.Point(18, 137);
+            this.cbxVideoOutputType.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.cbxVideoOutputType.Name = "cbxVideoOutputType";
-            this.cbxVideoOutputType.Size = new System.Drawing.Size(121, 21);
+            this.cbxVideoOutputType.Size = new System.Drawing.Size(238, 33);
             this.cbxVideoOutputType.TabIndex = 27;
             // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(6, 54);
+            this.label3.Location = new System.Drawing.Point(12, 104);
+            this.label3.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(62, 13);
+            this.label3.Size = new System.Drawing.Size(123, 25);
             this.label3.TabIndex = 26;
             this.label3.Text = "&Output type";
             // 
             // txtVideoResize
             // 
-            this.txtVideoResize.Location = new System.Drawing.Point(9, 30);
+            this.txtVideoResize.Location = new System.Drawing.Point(18, 58);
+            this.txtVideoResize.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.txtVideoResize.Name = "txtVideoResize";
-            this.txtVideoResize.Size = new System.Drawing.Size(112, 20);
+            this.txtVideoResize.Size = new System.Drawing.Size(220, 31);
             this.txtVideoResize.TabIndex = 24;
             this.txtVideoResize.Text = "100";
             // 
             // lblVideo
             // 
             this.lblVideo.AutoSize = true;
-            this.lblVideo.Location = new System.Drawing.Point(6, 13);
+            this.lblVideo.Location = new System.Drawing.Point(12, 25);
+            this.lblVideo.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblVideo.Name = "lblVideo";
-            this.lblVideo.Size = new System.Drawing.Size(80, 13);
+            this.lblVideo.Size = new System.Drawing.Size(160, 25);
             this.lblVideo.TabIndex = 23;
             this.lblVideo.Text = "R&esize video to";
             // 
@@ -329,9 +355,10 @@ namespace PhotoResizer
             "% of original size",
             "pixels high",
             "pixels wide"});
-            this.cbxVideoResizeType.Location = new System.Drawing.Point(136, 30);
+            this.cbxVideoResizeType.Location = new System.Drawing.Point(272, 58);
+            this.cbxVideoResizeType.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.cbxVideoResizeType.Name = "cbxVideoResizeType";
-            this.cbxVideoResizeType.Size = new System.Drawing.Size(133, 21);
+            this.cbxVideoResizeType.Size = new System.Drawing.Size(262, 33);
             this.cbxVideoResizeType.TabIndex = 25;
             // 
             // lblDragTrimVideo
@@ -340,34 +367,57 @@ namespace PhotoResizer
             this.lblDragTrimVideo.BackColor = System.Drawing.SystemColors.GradientInactiveCaption;
             this.lblDragTrimVideo.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lblDragTrimVideo.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblDragTrimVideo.Location = new System.Drawing.Point(388, 9);
+            this.lblDragTrimVideo.Location = new System.Drawing.Point(776, 17);
+            this.lblDragTrimVideo.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lblDragTrimVideo.Name = "lblDragTrimVideo";
-            this.lblDragTrimVideo.Size = new System.Drawing.Size(185, 136);
+            this.lblDragTrimVideo.Size = new System.Drawing.Size(368, 260);
             this.lblDragTrimVideo.TabIndex = 25;
             this.lblDragTrimVideo.Text = "Trim Video:\r\nDrag Videos To Trim Here (one at a time)";
             this.lblDragTrimVideo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // statusStrip
             // 
+            this.statusStrip.ImageScalingSize = new System.Drawing.Size(32, 32);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusInfo});
-            this.statusStrip.Location = new System.Drawing.Point(0, 404);
+            this.statusStrip.Location = new System.Drawing.Point(0, 818);
             this.statusStrip.Name = "statusStrip";
-            this.statusStrip.Size = new System.Drawing.Size(583, 22);
+            this.statusStrip.Padding = new System.Windows.Forms.Padding(2, 0, 28, 0);
+            this.statusStrip.Size = new System.Drawing.Size(1166, 37);
             this.statusStrip.TabIndex = 26;
             this.statusStrip.Text = "statusStrip1";
             // 
             // statusInfo
             // 
             this.statusInfo.Name = "statusInfo";
-            this.statusInfo.Size = new System.Drawing.Size(39, 17);
+            this.statusInfo.Size = new System.Drawing.Size(79, 32);
             this.statusInfo.Text = "Ready";
+            // 
+            // txtSuffix
+            // 
+            this.txtSuffix.Location = new System.Drawing.Point(290, 552);
+            this.txtSuffix.Margin = new System.Windows.Forms.Padding(6);
+            this.txtSuffix.Name = "txtSuffix";
+            this.txtSuffix.Size = new System.Drawing.Size(220, 31);
+            this.txtSuffix.TabIndex = 18;
+            // 
+            // lblSuffix
+            // 
+            this.lblSuffix.AutoSize = true;
+            this.lblSuffix.Location = new System.Drawing.Point(25, 552);
+            this.lblSuffix.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.lblSuffix.Name = "lblSuffix";
+            this.lblSuffix.Size = new System.Drawing.Size(163, 25);
+            this.lblSuffix.TabIndex = 18;
+            this.lblSuffix.Text = "&File name suffix";
             // 
             // frmHome
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(583, 426);
+            this.ClientSize = new System.Drawing.Size(1166, 855);
+            this.Controls.Add(this.lblSuffix);
+            this.Controls.Add(this.txtSuffix);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.lblDragTrimVideo);
             this.Controls.Add(this.panel2);
@@ -382,6 +432,7 @@ namespace PhotoResizer
             this.Controls.Add(this.lblNumFiles);
             this.Controls.Add(this.pbar1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.MaximizeBox = false;
             this.Name = "frmHome";
             this.Text = "Photo Resizer";
@@ -428,6 +479,8 @@ namespace PhotoResizer
         private System.Windows.Forms.Label lblDragTrimVideo;
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel statusInfo;
+        private System.Windows.Forms.TextBox txtSuffix;
+        private System.Windows.Forms.Label lblSuffix;
     }
 }
 

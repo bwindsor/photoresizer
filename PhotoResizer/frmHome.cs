@@ -102,6 +102,7 @@ namespace PhotoResizer
                 (int)nudVideoQuality.Value
             );
             MP.SetOptions(options);
+            MP.SetFileSuffix(txtSuffix.Text);
 
             FileValidationResult val = MP.ValidateFileList();
             if (val.noInputList.Count > 0 || val.folderFailedList.Count > 0)
@@ -394,6 +395,5 @@ namespace PhotoResizer
             }
             MessageBox.Show(dispString, "Currently Selected Files", MessageBoxButtons.OK);
         }
-
     }
 }
