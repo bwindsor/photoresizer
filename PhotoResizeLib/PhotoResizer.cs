@@ -281,69 +281,75 @@ namespace PhotoResizeLib
                                     outTypeOptions outTypeOption, int jpegQuality = 98)
         {
             // Read file - will throw exception if file doesn't exist
-            Image img = Image.FromFile(filename);
-
-            // Get new dimensions
-            Tuple<int, int> newSize = GetNewSize(resizeOption, img.Width, img.Height, resizeValue);
-            int newWidth = newSize.Item1;
-            int newHeight = newSize.Item2;
-
-            // Do actual resize
-            Bitmap resizedBmp = ResizeImage(img, newWidth, newHeight);
-
-            // Save result
-            if (outTypeOption == outTypeOptions.match)
+            using (Image img = Image.FromFile(filename))
             {
-                switch (Path.GetExtension(filename).ToLower())
+
+
+
+                // Get new dimensions
+                Tuple<int, int> newSize = GetNewSize(resizeOption, img.Width, img.Height, resizeValue);
+                int newWidth = newSize.Item1;
+                int newHeight = newSize.Item2;
+
+                // Do actual resize
+                using (Bitmap resizedBmp = ResizeImage(img, newWidth, newHeight))
                 {
-                    case ".jpg":
-                    case ".jpeg":
-                        outTypeOption = outTypeOptions.JPG;
-                        break;
-                    case ".bmp":
-                        outTypeOption = outTypeOptions.BMP;
-                        break;
-                    case ".gif":
-                        outTypeOption = outTypeOptions.GIF;
-                        break;
-                    case ".png":
-                        outTypeOption = outTypeOptions.PNG;
-                        break;
-                    case ".tif":
-                    case ".tiff":
-                        outTypeOption = outTypeOptions.TIF;
-                        break;
+
+                    // Save result
+                    if (outTypeOption == outTypeOptions.match)
+                    {
+                        switch (Path.GetExtension(filename).ToLower())
+                        {
+                            case ".jpg":
+                            case ".jpeg":
+                                outTypeOption = outTypeOptions.JPG;
+                                break;
+                            case ".bmp":
+                                outTypeOption = outTypeOptions.BMP;
+                                break;
+                            case ".gif":
+                                outTypeOption = outTypeOptions.GIF;
+                                break;
+                            case ".png":
+                                outTypeOption = outTypeOptions.PNG;
+                                break;
+                            case ".tif":
+                            case ".tiff":
+                                outTypeOption = outTypeOptions.TIF;
+                                break;
+                        }
+                    }
+                    EncoderParameters eps = null;
+                    ImageCodecInfo ici = GetEncoderInfo("image/bmp");
+                    switch (outTypeOption)
+                    {
+                        case outTypeOptions.JPG:
+                            eps = new EncoderParameters(1);
+                            eps.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)jpegQuality);
+                            ici = GetEncoderInfo("image/jpeg");
+                            break;
+                        case outTypeOptions.BMP:
+                            // Nothing to do - defaults are fine
+                            break;
+                        case outTypeOptions.GIF:
+                            ici = GetEncoderInfo("image/gif");
+                            break;
+                        case outTypeOptions.PNG:
+                            ici = GetEncoderInfo("image/png");
+                            break;
+                        case outTypeOptions.TIF:
+                            ici = GetEncoderInfo("image/tiff");
+                            break;
+                    }
+
+                    foreach (PropertyItem propItem in img.PropertyItems)
+                    {
+                        resizedBmp.SetPropertyItem(propItem);
+                    }
+
+                    resizedBmp.Save(outFile, ici, eps);
                 }
             }
-            EncoderParameters eps = null;
-            ImageCodecInfo ici = GetEncoderInfo("image/bmp");
-            switch (outTypeOption)
-            {
-                case outTypeOptions.JPG:
-                    eps = new EncoderParameters(1);
-                    eps.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)jpegQuality);
-                    ici = GetEncoderInfo("image/jpeg");
-                    break;
-                case outTypeOptions.BMP:
-                    // Nothing to do - defaults are fine
-                    break;
-                case outTypeOptions.GIF:
-                    ici = GetEncoderInfo("image/gif");
-                    break;
-                case outTypeOptions.PNG:
-                    ici = GetEncoderInfo("image/png");
-                    break;
-                case outTypeOptions.TIF:
-                    ici = GetEncoderInfo("image/tiff");
-                    break;
-            }
-
-            foreach (PropertyItem propItem in img.PropertyItems)
-            {
-                resizedBmp.SetPropertyItem(propItem);
-            }
-
-            resizedBmp.Save(outFile, ici, eps);
         }
 
         /// <summary>
