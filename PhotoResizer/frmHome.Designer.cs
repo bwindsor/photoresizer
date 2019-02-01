@@ -440,6 +440,7 @@ namespace PhotoResizer
             this.btnSetCropBoundaries.TabIndex = 16;
             this.btnSetCropBoundaries.Text = "Set crop boundaries in&dividually";
             this.btnSetCropBoundaries.UseVisualStyleBackColor = true;
+            this.btnSetCropBoundaries.Click += new System.EventHandler(this.btnSetCropBoundaries_Click);
             // 
             // txtRatio2
             // 

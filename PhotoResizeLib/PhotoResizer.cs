@@ -48,6 +48,23 @@ namespace PhotoResizeLib
             this.fileSuffix = suffix;
         }
 
+        public Dictionary<string, Rectangle> GetCropBoundaries()
+        {
+            return this.cropBoundaries;
+        }
+
+        public void SetCropBoundaryForFile(string filename, Rectangle cropBoundary)
+        {
+            if (this.cropBoundaries.ContainsKey(filename))
+            {
+                this.cropBoundaries[filename] = cropBoundary;
+            }
+            else
+            {
+                this.cropBoundaries.Add(filename, cropBoundary);
+            }
+        }
+
         public int GetNumFiles()
         {
             return this.fileList.Count;

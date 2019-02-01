@@ -353,22 +353,23 @@ namespace PhotoResizer
                 this.statusInfo.Text = "Dragged file is already in the list.";
                 return;
             }
-            
-            frmVideoTrim trimmer = new frmVideoTrim(filename);
-            DialogResult dialogResult = trimmer.ShowDialog(this);
-            switch (dialogResult)
+
+            using (frmVideoTrim trimmer = new frmVideoTrim(filename))
             {
-                case DialogResult.OK:
-                    Tuple<double, double> startStop = trimmer.GetTimeRange();
-                    MP.AddTrimmedVideo(filename, startStop);
-                    this.statusInfo.Text = "1 new file was added.";
-                    SetFileCount();
-                    break;
-                default:
-                    this.statusInfo.Text = "0 new files were added. Trimming was cancelled.";
-                    break;
+                DialogResult dialogResult = trimmer.ShowDialog(this);
+                switch (dialogResult)
+                {
+                    case DialogResult.OK:
+                        Tuple<double, double> startStop = trimmer.GetTimeRange();
+                        MP.AddTrimmedVideo(filename, startStop);
+                        this.statusInfo.Text = "1 new file was added.";
+                        SetFileCount();
+                        break;
+                    default:
+                        this.statusInfo.Text = "0 new files were added. Trimming was cancelled.";
+                        break;
+                }
             }
-            trimmer.Dispose();
         }
 
         private void btnClearFiles_Click(object sender, EventArgs e)
@@ -411,6 +412,23 @@ namespace PhotoResizer
                 }
             }
             MessageBox.Show(dispString, "Currently Selected Files", MessageBoxButtons.OK);
+        }
+
+        private void btnSetCropBoundaries_Click(object sender, EventArgs e)
+        {
+            using (frmImageCrop cropper = new frmImageCrop(this.MP.GetFileList(), this.MP.GetCropBoundaries()))
+            {
+                DialogResult dialogResult = cropper.ShowDialog(this);
+                if (dialogResult == DialogResult.OK)
+                {
+
+                    this.statusInfo.Text = "Updated custom crop areas.";
+                }
+                else
+                {
+                    this.statusInfo.Text = "Custom crop areas were not updated. Cropping was cancelled.";
+                }
+            }
         }
     }
 }
