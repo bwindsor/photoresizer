@@ -87,6 +87,7 @@ namespace PhotoResizeLib
         public int videoResizeValue { get; private set; } = 100;
         public int jpegQuality { get; private set; } = 98;
         public int videoQuality { get; private set; } = 100;
+        public float? defaultCropRatio { get; private set; } = null;
 
         public MediaProcessorOptions(comboOptions imageResizeType,
                                      comboOptions videoResizeType,
@@ -95,7 +96,8 @@ namespace PhotoResizeLib
                                      int imageResizeValue,
                                      int videoResizeValue,
                                      int jpegQuality,
-                                     int videoQuality)
+                                     int videoQuality,
+                                     float? defaultDropRatio)
         {
             this.imageResizeType = imageResizeType;
             this.videoResizeType = videoResizeType;
@@ -105,6 +107,7 @@ namespace PhotoResizeLib
             this.videoResizeValue = videoResizeValue;
             this.jpegQuality = jpegQuality;
             this.videoQuality = videoQuality;
+            this.defaultCropRatio = defaultDropRatio;
         }
 
         /// <summary>
@@ -136,6 +139,41 @@ namespace PhotoResizeLib
             }
 
             result = x;
+            return success;
+        }
+
+        public static bool TryParseCropRatio(string cropRatio, out float result)
+        {
+            result = 0;
+            bool success = true;
+            if (cropRatio.Length == 0)
+            {
+                success = false;
+            }
+            if (cropRatio.IndexOf(':') < 0)
+            {
+                success = false;
+            }
+            string[] parts = cropRatio.Split(':');
+            if (parts.Length != 2)
+            {
+                success = false;
+            }
+
+            if (!float.TryParse(parts[0], out float ratioLeft)) {
+                success = false;
+            }
+            if (!float.TryParse(parts[1], out float ratioRight))
+            {
+                success = false;
+            }
+            if (success)
+            {
+                if (ratioRight < 0.001) { success = false; }
+                if (ratioLeft < 0.001) { success = false; }
+                result = ratioRight / ratioLeft;
+                if (result < 0.01 || result > 100) { success = false; result = 0; }
+            }
             return success;
         }
     }

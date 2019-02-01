@@ -90,7 +90,23 @@ namespace PhotoResizer
                 MessageBox.Show("Invalid value entered for resizing videos to.", "Invalid entry", MessageBoxButtons.OK);
                 return;
             }
-            
+
+            float? defaultCropRatio = null;
+            if (this.txtRatio1.Text.Length > 0 && this.txtRatio2.Text.Length > 0)
+            {
+                float cropRatio;
+                success = MediaProcessorOptions.TryParseCropRatio(this.txtRatio1.Text + ":" + this.txtRatio2.Text, out cropRatio);
+                if (success)
+                {
+                    defaultCropRatio = cropRatio;
+                }
+                else
+                {
+                    MessageBox.Show("Invalid value entered for crop ratio.", "Invalid entry", MessageBoxButtons.OK);
+                    return;
+                }
+            }
+
             MediaProcessorOptions options = new MediaProcessorOptions(
                 (comboOptions)this.cbxResizeType.SelectedIndex,
                 (comboOptions)this.cbxVideoResizeType.SelectedIndex,
@@ -99,7 +115,8 @@ namespace PhotoResizer
                 resizeValue,
                 videoResizeValue,
                 (int)nudQuality.Value,
-                (int)nudVideoQuality.Value
+                (int)nudVideoQuality.Value,
+                defaultCropRatio
             );
             MP.SetOptions(options);
             MP.SetFileSuffix(txtSuffix.Text);

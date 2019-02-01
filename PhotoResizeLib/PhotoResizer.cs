@@ -22,6 +22,7 @@ namespace PhotoResizeLib
         private CancellationToken cancelToken;
         private delegate void VideoProgressDelegateCallback(object sender, EncodeProgressEventArgs e);
         private List<string> fileList = new List<string>(); // List of files to process
+        private Dictionary<string, Rectangle> cropBoundaries = new Dictionary<string, Rectangle>();   // List of crop boundaries
         private List<string> failedList = new List<string>(); // List of files which failed
         private List<string> trimFiles = new List<string>();
         private List<Tuple<double, double>> trimRanges = new List<Tuple<double, double>>();
@@ -145,7 +146,10 @@ namespace PhotoResizeLib
                         DoOnProgress(this, new ProgressEventArgs(0, ii, this.GetNumFiles(), this.fileList[ii]));
                         MediaProcessor.ProcessImageFile(this.fileList[ii], outFileList[ii], 
                                     this.options.imageResizeValue, this.options.imageResizeType,
-                                    this.options.imageOutType, this.options.jpegQuality);
+                                    this.options.imageOutType,
+                                    this.cropBoundaries,
+                                    this.options.defaultCropRatio,
+                                    this.options.jpegQuality);
                     }
                     else
                     {
@@ -284,21 +288,27 @@ namespace PhotoResizeLib
         /// <param name="jpegQuality">Only used if outTypeOption is JPEG, the quality parameter of the output JPEG image</param>
         /// <returns>Void.</returns>
         public static void ProcessImageFile(string filename, string outFile, int resizeValue, comboOptions resizeOption,
-                                    outTypeOptions outTypeOption, int jpegQuality = 98)
+                                    outTypeOptions outTypeOption,
+                                    Dictionary<string, Rectangle> definedCropBoundaries,
+                                    float? defaultCropRatio, int jpegQuality = 98)
         {
+
             // Read file - will throw exception if file doesn't exist
             using (Image img = Image.FromFile(filename))
             {
-
-
+                bool hasCrop = definedCropBoundaries.TryGetValue(filename, out Rectangle cropBoundary);
+                if (!hasCrop)
+                {
+                    cropBoundary = GetCropBoundary(defaultCropRatio, img.Width, img.Height);
+                }
 
                 // Get new dimensions
-                Tuple<int, int> newSize = GetNewSize(resizeOption, img.Width, img.Height, resizeValue);
+                Tuple<int, int> newSize = GetNewSize(resizeOption, cropBoundary.Width, cropBoundary.Height, resizeValue);
                 int newWidth = newSize.Item1;
                 int newHeight = newSize.Item2;
-
+                
                 // Do actual resize
-                using (Bitmap resizedBmp = ResizeImage(img, newWidth, newHeight))
+                using (Bitmap resizedBmp = ResizeImage(img, newWidth, newHeight, cropBoundary))
                 {
 
                     // Save result
@@ -444,10 +454,11 @@ namespace PhotoResizeLib
         /// <param name="width">The width to resize to.</param>
         /// <param name="height">The height to resize to.</param>
         /// <returns>The resized image.</returns>
-        private static Bitmap ResizeImage(Image image, int width, int height)
+        private static Bitmap ResizeImage(Image image, int width, int height, Rectangle cropBoundaries)
         {
             var destRect = new Rectangle(0, 0, width, height);
             var destImage = new Bitmap(width, height);
+            var srcRect = new Rectangle(0, 0, image.Width, image.Height);
 
             destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
@@ -462,22 +473,45 @@ namespace PhotoResizeLib
                 using (var wrapMode = new ImageAttributes())
                 {
                     wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+                    graphics.DrawImage(image, destRect, cropBoundaries.Left, cropBoundaries.Top, cropBoundaries.Width, cropBoundaries.Height, GraphicsUnit.Pixel, wrapMode);
                 }
             }
 
             return destImage;
         }
 
-        /// <summary>
-        /// Get the new dimensions of a photo or video based on the options requested.
-        /// </summary>
-        /// <param name="resizeOption">How to interpret the parameter resizeValue.</param>
-        /// <param name="width">The width of the original media.</param>
-        /// <param name="height">The height of the original media.</param>
-        /// <param name="resizeValue">The value to resize to interpreted in the way specified by resizeOption</param>
-        /// <returns>A tuple containing the dimensions of the new image.</returns>
-        private static Tuple<int, int> GetNewSize(comboOptions resizeOption, int width, int height, int resizeValue)
+        private static Rectangle GetCropBoundary(float? defaultCropRatio, int width, int height)
+        {
+            if (defaultCropRatio == null)
+            {
+                return new Rectangle(0, 0, width, height);
+            }
+            // defaultCropRatio is width/height (so 2 means twice as wide as tall)
+            float currentRatio = (float)width / height;
+            if (currentRatio > defaultCropRatio)  // Chop bits off the side
+            {
+                int newWidth = (int)(height * defaultCropRatio);
+                int newLeft = (width - newWidth) / 2;
+                return new Rectangle(newLeft, 0, newWidth, height);
+            }
+            else // Chop bits off the top and bottom
+            {
+                int newHeight = (int)(width / defaultCropRatio);
+                int newTop = (height - newHeight) / 2;
+                return new Rectangle(0, newTop, width, newHeight);
+            }
+        }
+
+
+/// <summary>
+/// Get the new dimensions of a photo or video based on the options requested.
+/// </summary>
+/// <param name="resizeOption">How to interpret the parameter resizeValue.</param>
+/// <param name="width">The width of the original media.</param>
+/// <param name="height">The height of the original media.</param>
+/// <param name="resizeValue">The value to resize to interpreted in the way specified by resizeOption</param>
+/// <returns>A tuple containing the dimensions of the new image.</returns>
+private static Tuple<int, int> GetNewSize(comboOptions resizeOption, int width, int height, int resizeValue)
         {
             int newWidth = 0;
             int newHeight = 0;
