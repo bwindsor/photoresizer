@@ -15,6 +15,7 @@ namespace PhotoResizer
         private List<string> filenames;
         private int currentIndex;
         private Image currentImage = null;
+        private static string formTitle = "Crop Images";
 
         private frmImageCrop()
         {
@@ -50,6 +51,7 @@ namespace PhotoResizer
             this.currentImage = Image.FromFile(this.filenames[this.currentIndex]);
             this.pictureMain.SizeMode = PictureBoxSizeMode.Zoom;
             this.pictureMain.Image = this.currentImage;
+            this.Text = frmImageCrop.formTitle + "(" + (this.currentIndex + 1).ToString() + " of " + this.filenames.Count.ToString() + ")";
         }
 
         private void btnNext_Click(object sender, EventArgs e)
