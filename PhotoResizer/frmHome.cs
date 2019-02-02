@@ -416,6 +416,12 @@ namespace PhotoResizer
 
         private void btnSetCropBoundaries_Click(object sender, EventArgs e)
         {
+            if (this.MP.GetNumFiles() == 0)
+            {
+                MessageBox.Show("No files selected", "No files selected", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
             using (frmImageCrop cropper = new frmImageCrop(this.MP.GetFileList(), this.MP.GetCropBoundaries()))
             {
                 DialogResult dialogResult = cropper.ShowDialog(this);
