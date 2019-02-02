@@ -34,6 +34,9 @@
             this.pictureMain.TabIndex = 0;
             this.pictureMain.TabStop = false;
             this.pictureMain.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureMain_Paint);
+            this.pictureMain.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureMain_MouseDown);
+            this.pictureMain.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pictureMain_MouseMove);
+            this.pictureMain.MouseUp += new System.Windows.Forms.MouseEventHandler(this.pictureMain_MouseUp);
             // 
             // btnPrevious
             // 

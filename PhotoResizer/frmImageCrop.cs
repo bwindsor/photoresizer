@@ -10,6 +10,19 @@ using PhotoResizeLib;
 
 namespace PhotoResizer
 {
+    public enum DragHandle
+    {
+        TOP_LEFT,
+        TOP,
+        TOP_RIGHT,
+        RIGHT,
+        BOTTOM_RIGHT,
+        BOTTOM,
+        BOTTOM_LEFT,
+        LEFT,
+        NONE
+    }
+
     public partial class frmImageCrop : Form
     {
         private Dictionary<string, Rectangle> cropBoundaries;
@@ -19,6 +32,7 @@ namespace PhotoResizer
         private static string formTitle = "Crop Images";
         private float? defaultCropRatio;
         private Rectangle currentRectangle;
+        private DragHandle currentDragHandle = DragHandle.NONE;
 
         private frmImageCrop()
         {
@@ -92,12 +106,8 @@ namespace PhotoResizer
             this.DisplayImage();
         }
 
-        public void DrawRectangle(PaintEventArgs e)
+        private Rectangle ConvertCoords(Rectangle startCoords, bool isImageToScreen)
         {
-
-            // Create pen.
-            Pen blackPen = new Pen(Color.Black, 3);
-
             // Image and container dimensions
             int w_i = this.pictureMain.Image.Width;
             int h_i = this.pictureMain.Image.Height;
@@ -122,11 +132,29 @@ namespace PhotoResizer
                 scale = (float)h_c / h_i;
                 left = (int)((w_c - w_i * scale) / 2);
                 top = 0;
-
             }
 
-            Rectangle rect = new Rectangle(left + (int)(this.currentRectangle.Left * scale), top + (int)(this.currentRectangle.Top * scale),
-                (int)(this.currentRectangle.Width * scale), (int)(this.currentRectangle.Height * scale));
+            Rectangle rect;
+            if (isImageToScreen)
+            {
+                rect = new Rectangle(left + (int)(startCoords.Left * scale), top + (int)(startCoords.Top * scale),
+                    (int)(startCoords.Width * scale), (int)(startCoords.Height * scale));
+            }
+            else
+            {
+                rect = new Rectangle((int)((startCoords.Left - left) / scale), (int)((startCoords.Top - top) / scale),
+                    (int)(startCoords.Width / scale), (int)(startCoords.Height / scale));
+            }
+            return rect;
+        }
+
+        public void DrawRectangle(PaintEventArgs e)
+        {
+
+            // Create pen.
+            Pen blackPen = new Pen(Color.Black, 3);
+
+            Rectangle rect = ConvertCoords(this.currentRectangle, isImageToScreen: true);
 
             // Draw rectangle to screen.
             e.Graphics.DrawRectangle(blackPen, rect);
@@ -135,6 +163,39 @@ namespace PhotoResizer
         private void pictureMain_Paint(object sender, PaintEventArgs e)
         {
             DrawRectangle(e);
+        }
+
+        private void pictureMain_MouseDown(object sender, MouseEventArgs e)
+        {
+            this.currentDragHandle = GetDragHandle(e);
+        }
+
+        private void pictureMain_MouseUp(object sender, MouseEventArgs e)
+        {
+            this.currentDragHandle = DragHandle.NONE;
+        }
+
+        private void pictureMain_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                switch (this.currentDragHandle)
+                {
+                    case DragHandle.NONE:
+                        break;
+                    case DragHandle.BOTTOM_RIGHT:
+                        Rectangle rect = ConvertCoords(this.currentRectangle, isImageToScreen: true);
+                        rect = new Rectangle(rect.Left, rect.Top, e.X - rect.Left, e.Y - rect.Top);
+                        this.currentRectangle = ConvertCoords(rect, isImageToScreen: false);
+                        this.pictureMain.Refresh();
+                        break;
+                }
+            }
+        }
+        
+        private DragHandle GetDragHandle(MouseEventArgs e)
+        {
+            return DragHandle.BOTTOM_RIGHT;
         }
     }
 }
