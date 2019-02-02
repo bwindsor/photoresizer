@@ -33,6 +33,7 @@
             this.pictureMain.Size = new System.Drawing.Size(1363, 756);
             this.pictureMain.TabIndex = 0;
             this.pictureMain.TabStop = false;
+            this.pictureMain.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureMain_Paint);
             // 
             // btnPrevious
             // 

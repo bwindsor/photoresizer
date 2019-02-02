@@ -313,11 +313,7 @@ namespace PhotoResizeLib
             // Read file - will throw exception if file doesn't exist
             using (Image img = Image.FromFile(filename))
             {
-                bool hasCrop = definedCropBoundaries.TryGetValue(filename, out Rectangle cropBoundary);
-                if (!hasCrop)
-                {
-                    cropBoundary = GetCropBoundary(defaultCropRatio, img.Width, img.Height);
-                }
+                Rectangle cropBoundary = GetCropBoundaryForImage(filename, img, definedCropBoundaries, defaultCropRatio);
 
                 // Get new dimensions
                 Tuple<int, int> newSize = GetNewSize(resizeOption, cropBoundary.Width, cropBoundary.Height, resizeValue);
@@ -497,8 +493,19 @@ namespace PhotoResizeLib
             return destImage;
         }
 
+        public static Rectangle GetCropBoundaryForImage(string filename, Image img, Dictionary<string, Rectangle> definedCropBoundaries, float? defaultCropRatio)
+        {
+            bool hasCrop = definedCropBoundaries.TryGetValue(filename, out Rectangle cropBoundary);
+            if (!hasCrop)
+            {
+                cropBoundary = GetCropBoundary(defaultCropRatio, img.Width, img.Height);
+            }
+            return cropBoundary;
+        }
+
         private static Rectangle GetCropBoundary(float? defaultCropRatio, int width, int height)
         {
+
             if (defaultCropRatio == null)
             {
                 return new Rectangle(0, 0, width, height);

@@ -62,6 +62,21 @@ namespace PhotoResizer
             this.toolTip1.SetToolTip(this.lblDragTrimVideo, videoTooltip);
         }
 
+        private bool TryReadDefaultCropRatio(out float? defaultCropRatio)
+        {
+            bool success = true;
+            defaultCropRatio = null;
+            if (this.txtRatio1.Text.Length > 0 && this.txtRatio2.Text.Length > 0)
+            {
+                float cropRatio;
+                success = MediaProcessorOptions.TryParseCropRatio(this.txtRatio1.Text + ":" + this.txtRatio2.Text, out cropRatio);
+                if (success)
+                {
+                    defaultCropRatio = cropRatio;
+                }
+            }
+            return success;
+        }
 
         private void btnProcess_Click(object sender, EventArgs e)
         {
@@ -91,22 +106,13 @@ namespace PhotoResizer
                 return;
             }
 
-            float? defaultCropRatio = null;
-            if (this.txtRatio1.Text.Length > 0 && this.txtRatio2.Text.Length > 0)
+            success = this.TryReadDefaultCropRatio(out float? defaultCropRatio);
+            if (!success)
             {
-                float cropRatio;
-                success = MediaProcessorOptions.TryParseCropRatio(this.txtRatio1.Text + ":" + this.txtRatio2.Text, out cropRatio);
-                if (success)
-                {
-                    defaultCropRatio = cropRatio;
-                }
-                else
-                {
-                    MessageBox.Show("Invalid value entered for crop ratio.", "Invalid entry", MessageBoxButtons.OK);
-                    return;
-                }
+                MessageBox.Show("Invalid value entered for crop ratio.", "Invalid entry", MessageBoxButtons.OK);
+                return;
             }
-
+            
             MediaProcessorOptions options = new MediaProcessorOptions(
                 (comboOptions)this.cbxResizeType.SelectedIndex,
                 (comboOptions)this.cbxVideoResizeType.SelectedIndex,
@@ -422,7 +428,14 @@ namespace PhotoResizer
                 return;
             }
 
-            using (frmImageCrop cropper = new frmImageCrop(this.MP.GetFileList(), this.MP.GetCropBoundaries()))
+            bool success = this.TryReadDefaultCropRatio(out float? defaultCropRatio);
+            if (!success)
+            {
+                MessageBox.Show("Invalid default crop ratio entered", "Invalid default crop ratio", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            using (frmImageCrop cropper = new frmImageCrop(this.MP.GetFileList(), this.MP.GetCropBoundaries(), defaultCropRatio))
             {
                 DialogResult dialogResult = cropper.ShowDialog(this);
                 if (dialogResult == DialogResult.OK)
