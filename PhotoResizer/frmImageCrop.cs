@@ -60,8 +60,8 @@ namespace PhotoResizer
             if (disposing)
             {
                 components?.Dispose();
-                currentImage?.Dispose();
             }
+            currentImage?.Dispose();
             base.Dispose(disposing);
         }
 
