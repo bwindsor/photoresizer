@@ -28,9 +28,10 @@
             this.pictureMain.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.pictureMain.Location = new System.Drawing.Point(12, 12);
+            this.pictureMain.Location = new System.Drawing.Point(6, 6);
+            this.pictureMain.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.pictureMain.Name = "pictureMain";
-            this.pictureMain.Size = new System.Drawing.Size(1363, 756);
+            this.pictureMain.Size = new System.Drawing.Size(682, 393);
             this.pictureMain.TabIndex = 0;
             this.pictureMain.TabStop = false;
             this.pictureMain.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureMain_Paint);
@@ -41,9 +42,10 @@
             // btnPrevious
             // 
             this.btnPrevious.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.btnPrevious.Location = new System.Drawing.Point(12, 784);
+            this.btnPrevious.Location = new System.Drawing.Point(6, 408);
+            this.btnPrevious.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnPrevious.Name = "btnPrevious";
-            this.btnPrevious.Size = new System.Drawing.Size(375, 50);
+            this.btnPrevious.Size = new System.Drawing.Size(188, 26);
             this.btnPrevious.TabIndex = 1;
             this.btnPrevious.Text = "&Previous";
             this.btnPrevious.UseVisualStyleBackColor = true;
@@ -52,9 +54,10 @@
             // btnNext
             // 
             this.btnNext.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnNext.Location = new System.Drawing.Point(972, 784);
+            this.btnNext.Location = new System.Drawing.Point(486, 408);
+            this.btnNext.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnNext.Name = "btnNext";
-            this.btnNext.Size = new System.Drawing.Size(403, 51);
+            this.btnNext.Size = new System.Drawing.Size(202, 27);
             this.btnNext.TabIndex = 2;
             this.btnNext.Text = "&Next";
             this.btnNext.UseVisualStyleBackColor = true;
@@ -64,9 +67,10 @@
             // 
             this.btnReset.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnReset.Location = new System.Drawing.Point(393, 785);
+            this.btnReset.Location = new System.Drawing.Point(196, 408);
+            this.btnReset.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnReset.Name = "btnReset";
-            this.btnReset.Size = new System.Drawing.Size(236, 50);
+            this.btnReset.Size = new System.Drawing.Size(118, 26);
             this.btnReset.TabIndex = 3;
             this.btnReset.Text = "&Reset Crop";
             this.btnReset.UseVisualStyleBackColor = true;
@@ -75,23 +79,25 @@
             // 
             this.btnSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnSave.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.btnSave.Location = new System.Drawing.Point(638, 784);
+            this.btnSave.Location = new System.Drawing.Point(319, 408);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(328, 50);
+            this.btnSave.Size = new System.Drawing.Size(164, 26);
             this.btnSave.TabIndex = 4;
             this.btnSave.Text = "&Save and Close";
             this.btnSave.UseVisualStyleBackColor = true;
             // 
             // frmImageCrop
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1387, 847);
+            this.ClientSize = new System.Drawing.Size(694, 440);
             this.Controls.Add(this.btnSave);
             this.Controls.Add(this.btnReset);
             this.Controls.Add(this.btnNext);
             this.Controls.Add(this.btnPrevious);
             this.Controls.Add(this.pictureMain);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "frmImageCrop";
             this.Text = "Crop Images";
             ((System.ComponentModel.ISupportInitialize)(this.pictureMain)).EndInit();

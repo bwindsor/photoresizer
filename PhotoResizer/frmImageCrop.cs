@@ -20,6 +20,7 @@ namespace PhotoResizer
         BOTTOM,
         BOTTOM_LEFT,
         LEFT,
+        MIDDLE,
         NONE
     }
 
@@ -31,7 +32,11 @@ namespace PhotoResizer
         private Image currentImage = null;
         private static string formTitle = "Crop Images";
         private float? defaultCropRatio;
-        private Rectangle currentRectangle;
+        private Rectangle currentRectangle;  // Currently displayed rectangle in image coordinates
+        private Rectangle currentDragRectangle;   // Currently dragged rectangle in screen coordinates
+        private Rectangle currentDragInitialRectangle;  // Rectangle from the start of the drag in screen coordinates
+        private Point currentDragStart;   // Drag start point in screen coordinates
+        private float currentDragInitialRatio; // Image ratio at start of drag
         private DragHandle currentDragHandle = DragHandle.NONE;
 
         private frmImageCrop()
@@ -154,7 +159,9 @@ namespace PhotoResizer
             // Create pen.
             Pen blackPen = new Pen(Color.Black, 3);
 
-            Rectangle rect = ConvertCoords(this.currentRectangle, isImageToScreen: true);
+            Rectangle rect = (this.currentDragHandle == DragHandle.NONE 
+                ? ConvertCoords(this.currentRectangle, isImageToScreen: true)
+                : this.currentDragRectangle);
 
             // Draw rectangle to screen.
             e.Graphics.DrawRectangle(blackPen, rect);
@@ -168,34 +175,170 @@ namespace PhotoResizer
         private void pictureMain_MouseDown(object sender, MouseEventArgs e)
         {
             this.currentDragHandle = GetDragHandle(e);
+            if (this.currentDragHandle != DragHandle.NONE)
+            {
+                this.currentDragRectangle = ConvertCoords(this.currentRectangle, isImageToScreen: true);
+                this.currentDragInitialRectangle = this.currentDragRectangle;
+                this.currentDragInitialRatio = (float)this.currentDragRectangle.Width / this.currentDragRectangle.Height;
+                this.currentDragStart = e.Location;
+            }
         }
 
         private void pictureMain_MouseUp(object sender, MouseEventArgs e)
         {
+            if (this.currentDragHandle != DragHandle.NONE)
+            {
+                this.currentRectangle = ConvertCoords(this.currentDragRectangle, isImageToScreen: false);
+            }
             this.currentDragHandle = DragHandle.NONE;
         }
 
+        private Size GetLockedAspectSize(Rectangle rect)
+        {
+            // Should only be called during a drag operation
+            float targetRatio = this.currentDragInitialRatio;
+            float currentRatio = (float)rect.Width / rect.Height;
+            if (currentRatio > targetRatio)
+            {
+                return new Size((int)(rect.Height * targetRatio), rect.Height);
+            }
+            else
+            {
+                return new Size(rect.Width, (int)(rect.Width / targetRatio));
+            }
+        }
+
+        private Rectangle MoveWithinBounds(Rectangle rect)
+        {
+            const int MIN_DIM = 10;
+            Rectangle newRect = new Rectangle(rect.X, rect.Y, rect.Width, rect.Height);
+            newRect.X = Math.Max(0, Math.Min(newRect.X, pictureMain.Width - MIN_DIM));
+            newRect.Y = Math.Max(0, Math.Min(newRect.Y, pictureMain.Height - MIN_DIM));
+            newRect.Width = Math.Min(pictureMain.Width - newRect.X, Math.Max(MIN_DIM, newRect.Width));
+            newRect.Height = Math.Min(pictureMain.Height - newRect.Y, Math.Max(MIN_DIM, newRect.Height));
+            return newRect;
+        }
         private void pictureMain_MouseMove(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
             {
+                Size sz;
+                Rectangle rect = this.currentDragRectangle;
                 switch (this.currentDragHandle)
                 {
                     case DragHandle.NONE:
                         break;
                     case DragHandle.BOTTOM_RIGHT:
-                        Rectangle rect = ConvertCoords(this.currentRectangle, isImageToScreen: true);
                         rect = new Rectangle(rect.Left, rect.Top, e.X - rect.Left, e.Y - rect.Top);
-                        this.currentRectangle = ConvertCoords(rect, isImageToScreen: false);
-                        this.pictureMain.Refresh();
+                        rect = MoveWithinBounds(rect);
+                        sz = GetLockedAspectSize(rect);
+                        rect.Size = sz;
+                        break;
+                    case DragHandle.BOTTOM_LEFT:
+                        rect = new Rectangle(e.X, rect.Top, rect.Right - e.X, e.Y - rect.Top);
+                        rect = MoveWithinBounds(rect);
+                        sz = GetLockedAspectSize(rect);
+                        rect.X = rect.Right - sz.Width;
+                        rect.Size = sz;
+                        break;
+                    case DragHandle.TOP_LEFT:
+                        rect = new Rectangle(e.X, e.Y, rect.Right - e.X, rect.Bottom - e.Y);
+                        rect = MoveWithinBounds(rect);
+                        sz = GetLockedAspectSize(rect);
+                        rect.X = rect.Right - sz.Width;
+                        rect.Y = rect.Bottom - sz.Height;
+                        rect.Size = sz;
+                        break;
+                    case DragHandle.TOP_RIGHT:
+                        rect = new Rectangle(rect.Left, e.Y, e.X - rect.Left, rect.Bottom - e.Y);
+                        rect = MoveWithinBounds(rect);
+                        sz = GetLockedAspectSize(rect);
+                        rect.Y = rect.Bottom - sz.Height;
+                        rect.Size = sz;
+                        break;
+                    case DragHandle.RIGHT:
+                        rect = new Rectangle(rect.Left, rect.Top, e.X - rect.Left, rect.Height);
+                        rect = MoveWithinBounds(rect);
+                        break;
+                    case DragHandle.LEFT:
+                        rect = new Rectangle(e.X, rect.Top, rect.Right - e.X, rect.Height);
+                        rect = MoveWithinBounds(rect);
+                        break;
+                    case DragHandle.TOP:
+                        rect = new Rectangle(rect.Left, e.Y, rect.Width, rect.Bottom - e.Y);
+                        rect = MoveWithinBounds(rect);
+                        break;
+                    case DragHandle.BOTTOM:
+                        rect = new Rectangle(rect.Left, rect.Top, rect.Width, e.Y - rect.Top);
+                        rect = MoveWithinBounds(rect);
+                        break;
+                    case DragHandle.MIDDLE:
+                        int spaceRight = pictureMain.Width - currentDragInitialRectangle.Width;
+                        int spaceLeft = currentDragInitialRectangle.Left;
+                        int spaceTop = currentDragInitialRectangle.Top;
+                        int spaceBottom = pictureMain.Height - currentDragInitialRectangle.Height;
+
+                        int dx = Math.Min(Math.Max(e.X - currentDragStart.X, -spaceLeft), spaceRight);
+                        int dy = Math.Min(Math.Max(e.Y - currentDragStart.Y, -spaceTop), spaceBottom);
+                        rect = new Rectangle(currentDragInitialRectangle.Left + dx, currentDragInitialRectangle.Top + dy, currentDragInitialRectangle.Width, currentDragInitialRectangle.Height);
                         break;
                 }
+                this.currentDragRectangle = rect;
+
+                this.pictureMain.Refresh();
+
             }
         }
         
         private DragHandle GetDragHandle(MouseEventArgs e)
         {
-            return DragHandle.BOTTOM_RIGHT;
+            Rectangle rect = ConvertCoords(this.currentRectangle, isImageToScreen: true);
+            int margin = 3;
+            bool isRight = Math.Abs(e.X - rect.Right) <= margin;
+            bool isLeft = Math.Abs(e.X - rect.Left) <= margin;
+            bool isTop = Math.Abs(e.Y - rect.Top) <= margin;
+            bool isBottom = Math.Abs(e.Y - rect.Bottom) <= margin;
+            
+            if (isRight && isBottom)
+            {
+                return DragHandle.BOTTOM_RIGHT;
+            }
+            else if (isRight && isTop)
+            {
+                return DragHandle.TOP_RIGHT;
+            }
+            else if (isLeft && isTop)
+            {
+                return DragHandle.TOP_LEFT;
+            }
+            else if (isLeft && isBottom)
+            {
+                return DragHandle.BOTTOM_LEFT;
+            }
+            else if (isBottom)
+            {
+                return DragHandle.BOTTOM;
+            }
+            else if (isTop)
+            {
+                return DragHandle.TOP;
+            }
+            else if (isLeft)
+            {
+                return DragHandle.LEFT;
+            }
+            else if (isRight)
+            {
+                return DragHandle.RIGHT;
+            }
+            else if (rect.Contains(e.X, e.Y))
+            {
+                return DragHandle.MIDDLE;
+            }
+            else
+            {
+                return DragHandle.NONE;
+            }
         }
     }
 }
