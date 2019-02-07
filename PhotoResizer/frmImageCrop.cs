@@ -36,6 +36,13 @@ namespace PhotoResizer
         private Rectangle currentDragRectangle;   // Currently dragged rectangle in screen coordinates
         private Rectangle currentDragInitialRectangle;  // Rectangle from the start of the drag in screen coordinates
         private Point currentDragStart;   // Drag start point in screen coordinates
+        private Rectangle ImageRectangleScreen  // Outer boundary of image in screen coordinates
+        {
+            get
+            {
+                return ConvertCoords(new Rectangle(0, 0, pictureMain.Image.Width, pictureMain.Image.Height), isImageToScreen:true);
+            }
+        }
         private float currentDragInitialRatio; // Image ratio at start of drag
         private DragHandle currentDragHandle = DragHandle.NONE;
 
@@ -210,12 +217,26 @@ namespace PhotoResizer
 
         private Rectangle MoveWithinBounds(Rectangle rect)
         {
-            const int MIN_DIM = 10;
+            Rectangle bounds = this.ImageRectangleScreen;
             Rectangle newRect = new Rectangle(rect.X, rect.Y, rect.Width, rect.Height);
-            newRect.X = Math.Max(0, Math.Min(newRect.X, pictureMain.Width - MIN_DIM));
-            newRect.Y = Math.Max(0, Math.Min(newRect.Y, pictureMain.Height - MIN_DIM));
-            newRect.Width = Math.Min(pictureMain.Width - newRect.X, Math.Max(MIN_DIM, newRect.Width));
-            newRect.Height = Math.Min(pictureMain.Height - newRect.Y, Math.Max(MIN_DIM, newRect.Height));
+            if (newRect.X < bounds.Left)
+            {
+                newRect.Width -= (bounds.Left - newRect.X);
+                newRect.X = bounds.Left;
+            }
+            if (newRect.Y < bounds.Top)
+            {
+                newRect.Height -= (bounds.Top - newRect.Y);
+                newRect.Y = bounds.Top;
+            }
+            if (newRect.Right > bounds.Right)
+            {
+                newRect.Width = bounds.Right - newRect.Left;
+            }
+            if (newRect.Bottom > bounds.Bottom)
+            {
+                newRect.Height = bounds.Bottom - newRect.Top;
+            }
             return newRect;
         }
         private void pictureMain_MouseMove(object sender, MouseEventArgs e)
@@ -224,25 +245,32 @@ namespace PhotoResizer
             {
                 Size sz;
                 Rectangle rect = this.currentDragRectangle;
+                const int MIN_DIM = 10;
+                int newLeft;
+                int newTop;
                 switch (this.currentDragHandle)
                 {
                     case DragHandle.NONE:
                         break;
                     case DragHandle.BOTTOM_RIGHT:
-                        rect = new Rectangle(rect.Left, rect.Top, e.X - rect.Left, e.Y - rect.Top);
+                        rect = new Rectangle(rect.Left, rect.Top,
+                            Math.Max(MIN_DIM, e.X - rect.Left), Math.Max(MIN_DIM, e.Y - rect.Top));
                         rect = MoveWithinBounds(rect);
                         sz = GetLockedAspectSize(rect);
                         rect.Size = sz;
                         break;
                     case DragHandle.BOTTOM_LEFT:
-                        rect = new Rectangle(e.X, rect.Top, rect.Right - e.X, e.Y - rect.Top);
+                        newLeft = Math.Min(e.X, rect.Right - MIN_DIM);
+                        rect = new Rectangle(newLeft, rect.Top, rect.Right - newLeft, Math.Max(MIN_DIM, e.Y - rect.Top));
                         rect = MoveWithinBounds(rect);
                         sz = GetLockedAspectSize(rect);
                         rect.X = rect.Right - sz.Width;
                         rect.Size = sz;
                         break;
                     case DragHandle.TOP_LEFT:
-                        rect = new Rectangle(e.X, e.Y, rect.Right - e.X, rect.Bottom - e.Y);
+                        newLeft = Math.Min(e.X, rect.Right - MIN_DIM);
+                        newTop = Math.Min(e.Y, rect.Bottom - MIN_DIM);
+                        rect = new Rectangle(newLeft, newTop, rect.Right - newLeft, rect.Bottom - newTop);
                         rect = MoveWithinBounds(rect);
                         sz = GetLockedAspectSize(rect);
                         rect.X = rect.Right - sz.Width;
@@ -250,33 +278,36 @@ namespace PhotoResizer
                         rect.Size = sz;
                         break;
                     case DragHandle.TOP_RIGHT:
-                        rect = new Rectangle(rect.Left, e.Y, e.X - rect.Left, rect.Bottom - e.Y);
+                        newTop = Math.Min(e.Y, rect.Bottom - MIN_DIM);
+                        rect = new Rectangle(rect.Left, newTop, Math.Max(e.X - rect.Left, MIN_DIM), rect.Bottom - newTop);
                         rect = MoveWithinBounds(rect);
                         sz = GetLockedAspectSize(rect);
                         rect.Y = rect.Bottom - sz.Height;
                         rect.Size = sz;
                         break;
                     case DragHandle.RIGHT:
-                        rect = new Rectangle(rect.Left, rect.Top, e.X - rect.Left, rect.Height);
+                        rect = new Rectangle(rect.Left, rect.Top, Math.Max(e.X - rect.Left, MIN_DIM), rect.Height);
                         rect = MoveWithinBounds(rect);
                         break;
                     case DragHandle.LEFT:
-                        rect = new Rectangle(e.X, rect.Top, rect.Right - e.X, rect.Height);
+                        newLeft = Math.Min(e.X, rect.Right - MIN_DIM);
+                        rect = new Rectangle(newLeft, rect.Top, rect.Right - newLeft, rect.Height);
                         rect = MoveWithinBounds(rect);
                         break;
                     case DragHandle.TOP:
-                        rect = new Rectangle(rect.Left, e.Y, rect.Width, rect.Bottom - e.Y);
+                        newTop = Math.Min(e.Y, rect.Bottom - MIN_DIM);
+                        rect = new Rectangle(rect.Left, newTop, rect.Width, rect.Bottom - newTop);
                         rect = MoveWithinBounds(rect);
                         break;
                     case DragHandle.BOTTOM:
-                        rect = new Rectangle(rect.Left, rect.Top, rect.Width, e.Y - rect.Top);
+                        rect = new Rectangle(rect.Left, rect.Top, rect.Width, Math.Max(e.Y - rect.Top, MIN_DIM));
                         rect = MoveWithinBounds(rect);
                         break;
                     case DragHandle.MIDDLE:
-                        int spaceRight = pictureMain.Width - currentDragInitialRectangle.Width;
-                        int spaceLeft = currentDragInitialRectangle.Left;
-                        int spaceTop = currentDragInitialRectangle.Top;
-                        int spaceBottom = pictureMain.Height - currentDragInitialRectangle.Height;
+                        int spaceRight = ImageRectangleScreen.Right - currentDragInitialRectangle.Right;
+                        int spaceLeft = currentDragInitialRectangle.Left - ImageRectangleScreen.Left;
+                        int spaceTop = currentDragInitialRectangle.Top - ImageRectangleScreen.Top;
+                        int spaceBottom = ImageRectangleScreen.Bottom - currentDragInitialRectangle.Bottom;
 
                         int dx = Math.Min(Math.Max(e.X - currentDragStart.X, -spaceLeft), spaceRight);
                         int dy = Math.Min(Math.Max(e.Y - currentDragStart.Y, -spaceTop), spaceBottom);
