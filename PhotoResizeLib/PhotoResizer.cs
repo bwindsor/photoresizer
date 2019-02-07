@@ -510,6 +510,13 @@ namespace PhotoResizeLib
             {
                 return new Rectangle(0, 0, width, height);
             }
+
+            // Make portrait images have crop ratio the other way round
+            if (height > width)
+            {
+                defaultCropRatio = 1 / defaultCropRatio;
+            }
+
             // defaultCropRatio is width/height (so 2 means twice as wide as tall)
             float currentRatio = (float)width / height;
             if (currentRatio > defaultCropRatio)  // Chop bits off the side
