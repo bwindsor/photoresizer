@@ -10,9 +10,17 @@ Microsoft .NET framework v4.0 or above is required to run the program. Almost al
 3. Extract the zip file somewhere on your computer.
 4. Run `PhotoResizer.exe`. Your computer may ask whether you want to run the program (as it may detect it as a potential risk).  Select "Run anyway" if you wish to use the program and you trust that I haven't written a virus.
 
-## For developers - dependencies
+## Development
+### Dependencies
 * For the video part both for coding and for running the program, [Microsoft Expression Encoder](https://www.microsoft.com/en-gb/download/details.aspx?id=18974) is required to be installed. 
 * This provides the references `Microsoft.Expression.Encoder` and `Microsoft.Expression.Encoder.Types`
+### Creating a release
+1. Build the solution in Release (x86) mode using Visual Studio 2017
+2. Tag your release using `git tag -a v1.0 -m "Release change summary"`
+3. In github, go to releases, click "draft a new release" and select the tag you just created.
+4. Create a zip file of the release and name it `v1.0.zip` (replace `1.0` with the release version) - binaries are in the `bin/x86/release` folder where your repository is created. You should not include the `.pdb` files. This should mean 5 files are included in the release.
+5. Attach the zip file of binaries to the release
+6. Click Create Release
 
 ## Using the program
 * To add photos and videos to be processed, just drag them into the box.
