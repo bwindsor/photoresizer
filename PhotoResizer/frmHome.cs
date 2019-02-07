@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using PhotoResizeLib;
+using System.Drawing;
 
 namespace PhotoResizer
 {
@@ -440,7 +441,11 @@ namespace PhotoResizer
                 DialogResult dialogResult = cropper.ShowDialog(this);
                 if (dialogResult == DialogResult.OK)
                 {
-
+                    var setBoundaries = cropper.GetCropBoundaries();
+                    foreach (KeyValuePair<string, Rectangle> p in setBoundaries)
+                    {
+                        MP.SetCropBoundaryForFile(p.Key, p.Value);
+                    }
                     this.statusInfo.Text = "Updated custom crop areas.";
                 }
                 else

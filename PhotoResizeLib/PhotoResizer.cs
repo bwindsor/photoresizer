@@ -50,7 +50,7 @@ namespace PhotoResizeLib
 
         public Dictionary<string, Rectangle> GetCropBoundaries()
         {
-            return this.cropBoundaries;
+            return new Dictionary<string, Rectangle>(this.cropBoundaries);
         }
 
         public void SetCropBoundaryForFile(string filename, Rectangle cropBoundary)

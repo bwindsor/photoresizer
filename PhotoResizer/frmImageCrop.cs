@@ -100,16 +100,21 @@ namespace PhotoResizer
 
         private void btnNext_Click(object sender, EventArgs e)
         {
+            this.cropBoundaries[this.filenames[this.currentIndex]] = this.currentRectangle;
+
             this.currentIndex += 1;
             if (this.currentIndex == this.filenames.Count)
             {
                 this.currentIndex = 0;
             }
+
             this.DisplayImage();
         }
 
         private void btnPrevious_Click(object sender, EventArgs e)
         {
+            this.cropBoundaries[this.filenames[this.currentIndex]] = this.currentRectangle;
+
             this.currentIndex -= 1;
             if (this.currentIndex < 0)
             {
@@ -370,6 +375,22 @@ namespace PhotoResizer
             {
                 return DragHandle.NONE;
             }
+        }
+
+        private void btnReset_Click(object sender, EventArgs e)
+        {
+            this.currentRectangle = this.cropBoundaries[this.filenames[this.currentIndex]];
+            this.DisplayImage();
+        }
+
+        private void btnSave_Click(object sender, EventArgs e)
+        {
+            this.cropBoundaries[this.filenames[this.currentIndex]] = this.currentRectangle;
+        }
+
+        public Dictionary<string, Rectangle> GetCropBoundaries()
+        {
+            return this.cropBoundaries;
         }
     }
 }
