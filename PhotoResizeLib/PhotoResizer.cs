@@ -24,6 +24,7 @@ namespace PhotoResizeLib
         private List<string> fileList = new List<string>(); // List of files to process
         private Dictionary<string, Rectangle> cropBoundaries = new Dictionary<string, Rectangle>();   // List of crop boundaries
         private List<string> failedList = new List<string>(); // List of files which failed
+        private Exception lastProcessingError = null;  // Last error whilst processing
         private List<string> trimFiles = new List<string>();
         private List<Tuple<double, double>> trimRanges = new List<Tuple<double, double>>();
         private MediaProcessorOptions options = null;
@@ -92,7 +93,7 @@ namespace PhotoResizeLib
 
         public ProcessingResult GetResult()
         {
-            return new ProcessingResult(this.fileList, this.failedList);
+            return new ProcessingResult(this.fileList, this.failedList, this.lastProcessingError);
         }
 
         public FileValidationResult ValidateFileList()
@@ -188,6 +189,7 @@ namespace PhotoResizeLib
                 {
                     Console.WriteLine(String.Format("{0} - {1}", exp.Message, exp.StackTrace));
                     failedList.Add(this.fileList[ii]);
+                    lastProcessingError = exp;
                 }
             }
             if (token.IsCancellationRequested)

@@ -186,13 +186,15 @@ namespace PhotoResizeLib
         public int numTotal { get; private set; }
         public int numFailed { get; private set; }
         public int numComplete { get; private set; }
+        public Exception lastError { get; private set; }
         public List<string> fileList;
         public List<string> failedList;
-        public ProcessingResult(List<string> fileList, List<string> failedList)
+        public ProcessingResult(List<string> fileList, List<string> failedList, Exception lastError)
         {
             this.numTotal = fileList.Count;
             this.numFailed = failedList.Count;
             this.numComplete = this.numTotal - this.numFailed;
+            this.lastError = lastError;
             this.fileList = fileList;
             this.failedList = failedList;
         }

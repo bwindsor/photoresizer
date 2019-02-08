@@ -217,6 +217,13 @@ namespace PhotoResizer
                                 result.numComplete.ToString(),
                                 result.numTotal.ToString(),
                                 result.numFailed.ToString());
+
+                if (result.lastError != null)
+                {
+                    MessageBox.Show(String.Format("One or more files failed.\nLast exception: {0}\n{1}", result.lastError.Message, result.lastError.StackTrace),
+                        "File processing error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                }
+
                 this.btnProcess.Text = "Process Files";
                 SetControlsEnable(true);
                 MP.ClearFiles();
